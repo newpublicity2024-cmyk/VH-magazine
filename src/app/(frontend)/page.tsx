@@ -24,6 +24,7 @@ import {
 import { STATIC_ROUTES } from '@/lib/routes'
 import { absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
+import { buildSafe } from '@/lib/build-safe'
 import type { Article } from '@/payload-types'
 
 /** Spec §9: homepage revalidates roughly every five minutes. */
@@ -53,19 +54,27 @@ export async function generateMetadata(): Promise<Metadata> {
  * sequence would serialise fourteen round trips into the render.
  */
 export default async function HomePage() {
+  // One buildSafe around the whole batch rather than ten: if the database is
+  // unreachable during a build, every one of these fails for the same reason,
+  // and a half-populated homepage would be more confusing than an empty one.
   const [actu, lifestyle, moteur, videos, people, mostRead, latest, issues, banners, homepage] =
-    await Promise.all([
-      getArticlesByCategory('actualite-news-express-maroc', 4),
-      getArticlesByCategory('lifestyle-homme-maroc', 4),
-      getArticlesByCategory('moteur', 4),
-      getArticlesByCategory('video', 6),
-      getArticlesByCategory('people-celebrites', 5),
-      getMostRead(5),
-      getLatestArticles(5),
-      getIssues(4),
-      getBanners(),
-      getHomepageGlobal(),
-    ])
+    await buildSafe(
+      () =>
+        Promise.all([
+          getArticlesByCategory('actualite-news-express-maroc', 4),
+          getArticlesByCategory('lifestyle-homme-maroc', 4),
+          getArticlesByCategory('moteur', 4),
+          getArticlesByCategory('video', 6),
+          getArticlesByCategory('people-celebrites', 5),
+          getMostRead(5),
+          getLatestArticles(5),
+          getIssues(4),
+          getBanners(),
+          getHomepageGlobal(),
+        ]),
+      [[], [], [], [], [], [], [], [], {}, {} as Awaited<ReturnType<typeof getHomepageGlobal>>] as const as never,
+      'homepage',
+    )
 
   const chroniques = (homepage.chroniquesCigare || []).filter(
     (a): a is Article => typeof a === 'object' && a !== null,

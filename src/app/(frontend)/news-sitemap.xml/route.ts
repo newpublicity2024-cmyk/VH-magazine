@@ -9,7 +9,17 @@ import { absoluteUrl } from '@/lib/seo'
  * is a spec violation that gets the whole feed ignored, so the window is not
  * a tuning knob.
  */
-export const revalidate = 600
+/*
+ * Rendered on demand, not prerendered.
+ *
+ * Two reasons. A feed frozen at build time misrepresents a news site — the
+ * 48-hour news window in particular would be pinned to whenever the deploy ran.
+ * And prerendering forced the build to reach the database, which is what made a
+ * Vercel build fail outright when env vars were absent.
+ *
+ * Cost is bounded by the CDN cache header below rather than by ISR.
+ */
+export const dynamic = 'force-dynamic'
 
 const WINDOW_MS = 48 * 60 * 60 * 1000
 
@@ -48,5 +58,5 @@ export async function GET() {
 ${entries.join('\n')}
 </urlset>`
 
-  return new Response(xml, { headers: { 'content-type': 'application/xml; charset=utf-8' } })
+  return new Response(xml, { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, s-maxage=600, stale-while-revalidate=1200' } })
 }

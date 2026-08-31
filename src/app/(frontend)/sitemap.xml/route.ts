@@ -11,7 +11,17 @@ import { absoluteUrl } from '@/lib/seo'
  * sitemap says https://www.vh.ma even while the site runs on a Vercel preview
  * host. Nothing here changes at cutover.
  */
-export const revalidate = 3600
+/*
+ * Rendered on demand, not prerendered.
+ *
+ * Two reasons. A feed frozen at build time misrepresents a news site — the
+ * 48-hour news window in particular would be pinned to whenever the deploy ran.
+ * And prerendering forced the build to reach the database, which is what made a
+ * Vercel build fail outright when env vars were absent.
+ *
+ * Cost is bounded by the CDN cache header below rather than by ISR.
+ */
+export const dynamic = 'force-dynamic'
 
 const escape = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -56,6 +66,6 @@ ${entries.join('\n')}
 </urlset>`
 
   return new Response(xml, {
-    headers: { 'content-type': 'application/xml; charset=utf-8' },
+    headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, s-maxage=3600, stale-while-revalidate=7200' },
   })
 }

@@ -6,6 +6,7 @@ import { SectionTitle } from '@/components/SectionHeader'
 import { getAllIssues } from '@/lib/queries'
 import { STATIC_ROUTES } from '@/lib/routes'
 import { buildMetadata } from '@/lib/seo'
+import { buildSafe } from '@/lib/build-safe'
 
 export const revalidate = 3600
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = buildMetadata({
 })
 
 export default async function LesUnesPage() {
-  const issues = await getAllIssues()
+  const issues = await buildSafe(() => getAllIssues(), [], '/magazine-maroc/')
   return (
     <div className="vh-container py-6">
       <Breadcrumbs items={[{ label: 'Accueil', href: '/' }, { label: 'Les Unes de VH', href: STATIC_ROUTES.lesUnes }]} />

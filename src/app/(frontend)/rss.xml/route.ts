@@ -4,7 +4,17 @@ import { absoluteUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
 
 /** RSS 2.0 feed (spec §9). Absolute vh.ma links per amendment B2. */
-export const revalidate = 900
+/*
+ * Rendered on demand, not prerendered.
+ *
+ * Two reasons. A feed frozen at build time misrepresents a news site — the
+ * 48-hour news window in particular would be pinned to whenever the deploy ran.
+ * And prerendering forced the build to reach the database, which is what made a
+ * Vercel build fail outright when env vars were absent.
+ *
+ * Cost is bounded by the CDN cache header below rather than by ISR.
+ */
+export const dynamic = 'force-dynamic'
 
 const LIMIT = 50
 
@@ -43,5 +53,5 @@ ${items.join('\n')}
   </channel>
 </rss>`
 
-  return new Response(xml, { headers: { 'content-type': 'application/rss+xml; charset=utf-8' } })
+  return new Response(xml, { headers: { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, s-maxage=900, stale-while-revalidate=1800' } })
 }

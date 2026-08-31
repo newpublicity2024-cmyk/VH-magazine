@@ -6,6 +6,7 @@ import { SectionTitle } from '@/components/SectionHeader'
 import { getArticlesByCategory } from '@/lib/queries'
 import { STATIC_ROUTES } from '@/lib/routes'
 import { buildMetadata } from '@/lib/seo'
+import { buildSafe } from '@/lib/build-safe'
 
 export const revalidate = 900
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = buildMetadata({
 })
 
 export default async function VhTvPage() {
-  const videos = await getArticlesByCategory('video', 24)
+  const videos = await buildSafe(() => getArticlesByCategory('video', 24), [], '/vh-tv/')
   return (
     <div className="vh-container py-6">
       <Breadcrumbs items={[{ label: 'Accueil', href: '/' }, { label: 'VH TV', href: STATIC_ROUTES.vhTv }]} />

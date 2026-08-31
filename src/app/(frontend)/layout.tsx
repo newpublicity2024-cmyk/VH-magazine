@@ -56,6 +56,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Site settings are decorative here (socials, OG image); a failure must never
+  // take the whole layout down, at build time or at runtime.
   const settings = await getSiteSettings().catch(() => null)
   const social = (settings?.social as Parameters<typeof Header>[0]['social']) ?? null
 
