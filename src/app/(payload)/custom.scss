@@ -1,0 +1,14 @@
+/*
+ * Payload admin overrides — VH Magazine.
+ * LTR, French. Only the brand accent is themed; everything else stays stock so
+ * Payload upgrades don't fight custom CSS.
+ */
+:root {
+  --theme-success-500: #1f9d55;
+  --color-base-800: #111111;
+}
+
+.payload-logo,
+.graphic-icon {
+  max-width: 160px;
+}

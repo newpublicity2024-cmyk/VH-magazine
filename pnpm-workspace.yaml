@@ -1,0 +1,9 @@
+# pnpm 11 gates postinstall scripts behind an explicit allowlist. These three
+# compile or fetch native binaries and genuinely need to run:
+#   sharp         — image pipeline; the seed generates all placeholder imagery with it
+#   esbuild       — tsx's transpiler; the seed and G19 driver run through tsx
+#   unrs-resolver — eslint's module resolver
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

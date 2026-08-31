@@ -1,0 +1,127 @@
+@import 'tailwindcss';
+
+/*
+ * VH Magazine — frontend design tokens.
+ * French LTR men's magazine. Faithful to the live site: black uppercase section
+ * bands, white content, red accent. The "modern touch" (spec §10) lives in the
+ * spacing scale, letter-spacing on uppercase labels, and hover states — never in
+ * a changed information architecture.
+ */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* VH signature red. Spec §3 gives ~#e31e24 and asks to verify it against the
+   * logo asset — no asset exists yet, so this is a PLACEHOLDER. It is one token;
+   * correcting it later is a one-line change. */
+  --color-vh-red: #e31e24;
+  --color-vh-red-dark: #b8171c;
+
+  --color-ink: #000000;
+  --color-ink-soft: #111111;
+  /* Dates and meta text. Spec §3 specifies #888–#999, but #8a8a8a on white is
+   * 3.45:1 — below WCAG AA's 4.5:1 for normal text, and axe flags all 53 uses
+   * (every date, plus every top-bar link) as a serious violation. #757575 is
+   * 4.61:1: the closest value to the spec's intent that a reader with low
+   * vision can actually read. APPROVED deviation from spec §3: colour is a
+   * modernization-pass item (spec §10), so WCAG AA outranks §3's literal
+   * values. Do not "restore" #888–#999 — that reintroduces 53 AA failures. */
+  --color-meta: #757575;
+  --color-surface: #ffffff;
+  --color-rule: #e5e5e5;
+  --color-wash: #f5f5f5;
+}
+
+@layer components {
+  /* Content column. The live site sits just under 1240px. */
+  .vh-container {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 1240px;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .vh-container {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  /* The black uppercase section header strip (spec §3 "Section headers style").
+   * The whole band is a link to the category page. */
+  .vh-band {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background-color: var(--color-ink);
+    color: #ffffff;
+    padding-block: 0.625rem;
+    padding-inline: 1rem;
+  }
+  .vh-band-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.9375rem;
+    line-height: 1;
+  }
+
+  /* Card title: 2-line clamp with ellipsis, per spec §5.1. */
+  .vh-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .vh-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Soft image zoom on hover + red accent on the title (spec §10). */
+  .vh-card-media {
+    overflow: hidden;
+    background-color: var(--color-wash);
+  }
+  .vh-card-media img {
+    transition: transform 400ms ease;
+  }
+  .vh-card:hover .vh-card-media img {
+    transform: scale(1.04);
+  }
+  .vh-card:hover .vh-card-title {
+    color: var(--color-vh-red);
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-surface);
+    color: var(--color-ink-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-vh-red);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
