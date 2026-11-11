@@ -6,12 +6,23 @@ rebuilt from WordPress + WPBakery. Sister sites: `MFM-sport`, `lallafatema`.
 Source of truth for scope: `vh-magazine-website-spec.md`, `vh_homepage_wireframe.svg`,
 and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
 
-## Session state
+## Session state (2026-11-11)
 
-- **Round 1 complete and accepted** — spec §11 steps 1–4 (scaffold, global layout,
-  core components, homepage). 19/19 gates met, 0 abandoned.
-- **Round 2 not started** — steps 5–8. Awaiting the user's visual pass.
-- Nothing is committed; GitHub is deliberately unwired.
+- **Round 1 — accepted** (2026-08-30). Spec §11 steps 1–4, gates G1–G19.
+- **Round 2a — built, pushed, deployed; no recorded user acceptance.** Steps 5–7
+  (all page types, search, view counter, SEO layer, redirects), gates G20–G39,
+  contract `PLAN-2A.md`. Live as a prototype on Vercel (project `vh-magazine`,
+  team `newpublicitys-projects`) serving the seeded demo content.
+- **Round 2b — in progress**, step 8 (migrate the real vh.ma). Driven from
+  `/Users/mc/work/hostinger-ftp/migration/` — its own `PLAN.md` and per-phase
+  ledgers `GATES-P*.md`; read that PLAN first. Code lives on branch
+  `migration/media-import` (not pushed). P1–P4 done: 31,131 media originals in
+  Blob + the local `vh_migration` DB, and `/api/legacy-media` resolves every
+  legacy upload URL. P5 (8,170 articles) is blocked on Hostinger Remote MySQL
+  allowlisting this Mac's public IP.
+- `GATES.md` = G1–G41. G40–G41 (2026-11-11) cover two nav links G12 checked by
+  text but never requested — Grand Angle and KIT MEDIA both 404'd.
+- Still open from round 1: the D4 visual punch list never arrived.
 
 ## Standing harness policy
 
@@ -47,6 +58,18 @@ reported something other than what it measured.
   on the LCP image.
 - **A client component that mounts content only while open is invisible to
   crawlers.** Render it always and toggle visibility (see `MainNav`).
+- **A gate that checks a link's text has not checked the link.** G12 passed for
+  months over two 404s. G40 requests every internal nav link; extend it, don't
+  trust labels.
+- **Two local databases.** `vh_magazine` is dev + seed (every gate in this repo);
+  `vh_migration` is the import target — never seed it. A server started against
+  `vh_migration` can ISR-regenerate cached pages from it into `.next`, so rebuild
+  (G6) before running this repo's HTML gates after any P-phase gate.
+- **`next/link` prefetches internal hrefs.** An internal link to a file (the
+  KIT MEDIA PDF) must carry `prefetch={false}`, or every desktop page view
+  downloads it.
+- **Vercel Blob serves HTML as `Content-Disposition: attachment`.** The legacy
+  newsletters are proxied inline under a `sandbox` CSP instead of redirected.
 
 ## Conventions
 
@@ -66,6 +89,14 @@ reported something other than what it measured.
   from seeds and scripts.
 - Images use Next's own optimizer (unlike the sister sites) — spec §9 wants
   AVIF/WebP and there is no CDN in front. Revisit at deploy time for Vercel quota.
+- **Legacy uploads** (`/wp-content/uploads/*`): middleware rewrites to
+  `/api/legacy-media`, which resolves through `Media.legacyPath` with the rules in
+  `lib/legacy-media.ts` (exact → `-WxH` folded → `-scaled` folded; NFC and NFD
+  forms of each). Hit → 301 to the Blob URL, derived exactly as Payload's
+  Blob adapter derives it. Miss on a media extension → 302 to `MEDIA_ORIGIN`,
+  except when that origin is this site (post-cutover loop guard) → 404.
+  Non-media paths always 404. Nav links to old uploads keep the live URL
+  (`STATIC_ROUTES.kitMedia`).
 
 ## Approved deviations from the spec
 
@@ -80,6 +111,7 @@ reported something other than what it measured.
 ```
 pnpm dev            # localhost:3000, admin at /admin (admin@vh.ma / vhmagazine)
 pnpm seed           # idempotent
+pnpm migrate        # apply pending Payload migrations to DATABASE_URL (push is off)
 pnpm build
 pnpm generate:types # after any collection change
 ```
