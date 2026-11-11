@@ -79,6 +79,9 @@ export async function middleware(request: NextRequest) {
 
   // ── Legacy WordPress media: /wp-content/uploads/... (B1) ─────────────────
   if (pathname.startsWith('/wp-content/uploads/')) {
+    // The handler reads the ORIGINAL pathname: Next delivers a rewritten request
+    // to it with the original URL and without this `?path=` (see requestedPath()
+    // in the route). The param stays for platforms that do pass it through.
     const url = request.nextUrl.clone()
     url.pathname = '/api/legacy-media'
     url.searchParams.set('path', pathname)
