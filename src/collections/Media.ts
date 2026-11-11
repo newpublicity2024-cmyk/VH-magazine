@@ -22,7 +22,9 @@ export const Media: CollectionConfig = {
     delete: isAdminOrEditor,
   },
   upload: {
-    mimeTypes: ['image/*', 'application/pdf'],
+    // video/audio: the WordPress archive holds ~230 clips (MP4/MOV/MP3) that
+    // articles embed. Payload only runs sharp on images, so these upload as-is.
+    mimeTypes: ['image/*', 'application/pdf', 'video/*', 'audio/*'],
     focalPoint: true,
     imageSizes: [
       { name: 'thumb', width: 160, height: 160, position: 'centre' },
@@ -44,6 +46,28 @@ export const Media: CollectionConfig = {
       name: 'credit',
       type: 'text',
       label: 'Crédit photo',
+    },
+    // ── WordPress migration (round 2b) ──────────────────────────────────────
+    // Set only by the importer. legacyPath is the key the article import and
+    // /api/legacy-media resolve old URLs through, so it is unique and indexed.
+    {
+      name: 'legacyPath',
+      type: 'text',
+      label: 'Chemin WordPress',
+      unique: true,
+      index: true,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'Ancien chemin sur vh.ma, ex. wp-content/uploads/2024/03/photo.jpg',
+      },
+    },
+    {
+      name: 'legacyWpId',
+      type: 'number',
+      label: 'ID WordPress',
+      index: true,
+      admin: { readOnly: true, position: 'sidebar' },
     },
   ],
 }

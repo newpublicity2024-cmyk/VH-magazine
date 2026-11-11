@@ -140,6 +140,18 @@ export default buildConfig({
     push: false,
     pool: {
       connectionString: explicitSslMode(process.env.DATABASE_URL || ''),
+      // A suspended Neon compute takes several seconds to wake, and node-postgres
+      // defaults to a short connect timeout — observed live: three probes right
+      // after an idle period returned in 3533ms, 2225ms, then 415ms, and the
+      // first request had already failed with ETIMEDOUT. On Vercel the same
+      // cold start happens after any quiet spell, so allow for the wake-up
+      // rather than serving a 500 to whoever arrives first.
+      connectionTimeoutMillis: 30_000,
+      // Serverless invocations are short-lived and each holds a slot; a small
+      // pool with a brisk idle timeout avoids exhausting Neon's connection
+      // limit across concurrent lambdas.
+      max: 10,
+      idleTimeoutMillis: 30_000,
     },
   }),
   sharp,
