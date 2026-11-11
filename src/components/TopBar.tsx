@@ -27,7 +27,7 @@ export function TopBar({ social }: { social?: Social | null }) {
               >
                 <Link
                   href={item.href || '/'}
-                  {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                  {...(item.external ? { target: '_blank', rel: 'noopener noreferrer', prefetch: false } : {})}
                   className="text-[10px] font-medium uppercase tracking-[0.06em] text-meta transition-colors hover:text-vh-red"
                 >
                   {item.label}

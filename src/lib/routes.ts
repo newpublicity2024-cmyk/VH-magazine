@@ -107,7 +107,18 @@ export const STATIC_ROUTES = {
   whosWho: '/who-s-who-les-interviews-de-vh/',
   leLuxe: '/le-luxe/',
   recherche: '/recherche/',
+  /**
+   * The live site's media-kit link, kept byte-identical. It is a legacy upload
+   * URL, so /api/legacy-media resolves it: the imported PDF in Blob, or the old
+   * origin while the migrated media are not yet in the database.
+   */
+  kitMedia: '/wp-content/uploads/2018/02/vh-kit.pdf',
 } as const
+
+/** A listing URL with its page: page 1 has no query, so it never duplicates the bare URL. */
+export function pagedUrl(base: string, page: number): string {
+  return page > 1 ? `${base}?page=${page}` : base
+}
 
 /** Articles per page on category listings (spec §7). Shared by the page and G22. */
 export const PAGE_SIZE = 12

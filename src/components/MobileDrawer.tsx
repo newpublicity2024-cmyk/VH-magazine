@@ -140,7 +140,7 @@ export function MobileDrawer({ social }: { social?: Social | null }) {
                     <Link
                       href={item.href || '/'}
                       onClick={close}
-                      {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                      {...(item.external ? { target: '_blank', rel: 'noopener noreferrer', prefetch: false } : {})}
                       className="block text-[11px] uppercase tracking-[0.06em] text-meta"
                     >
                       {item.label}

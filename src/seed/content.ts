@@ -49,6 +49,14 @@ export const CATEGORIES: SeedCategory[] = [
   { name: 'People', slug: 'people-celebrites' },
   { name: 'La Couv’', slug: 'la-couv' },
   { name: 'Vitoles & Volutes', slug: 'vitoles-volutes', parent: 'culture' },
+  // The live site's Grand Angle tree (WP category 606) and its Société dossier
+  // child — articles at /grand-angle/{slug}/ and /grand-angle/societe/{slug}/.
+  {
+    name: 'Grand Angle',
+    slug: 'grand-angle',
+    description: 'Enquêtes, dossiers et grands entretiens.',
+  },
+  { name: 'Société', slug: 'societe', parent: 'grand-angle' },
 ]
 
 export const ARTICLES: SeedArticle[] = [
@@ -297,11 +305,32 @@ export const ARTICLES: SeedArticle[] = [
   },
   {
     title: 'Ce que pensent les hommes…',
-    category: 'culture',
+    slug: 'ce-que-pensent-les-hommes',
+    // Spec §5.12 calls it "the Grand Angle psy article"; the live site files it there.
+    category: 'grand-angle',
     date: '06/08/2026',
     views: 7100,
     excerpt:
       'Amour, désir, silence : enquête sur ce que les hommes disent — et taisent — de leurs sentiments.',
+  },
+  // ── Grand Angle / Société: live titles, slugs and dates, so the hub at
+  // /vh-grand-angle-2/ has a nested (3-segment) article to list. Old dates and
+  // low views keep them out of the homepage's latest and most-read widgets.
+  {
+    title: 'Passion et travail, mythe ou réalité ?',
+    slug: 'passion-et-travail-mythe-ou-realite',
+    category: 'societe',
+    date: '26/04/2021',
+    views: 640,
+    excerpt: 'Trouver le job de ses rêves ou vivre de sa passion : promesse tenable ou mythe moderne ?',
+  },
+  {
+    title: 'Relais Prison–Sociétés : le plaidoyer de Walid Cherqaoui',
+    slug: 'relais-prison-societes-le-plaidoyer-de-walid-cherqaoui',
+    category: 'societe',
+    date: '23/12/2020',
+    views: 410,
+    excerpt: 'L’association Relais Prison-Sociétés œuvre chaque jour à la réinsertion des détenus.',
   },
   {
     title: 'Who’s Who, les interviews de VH',
@@ -405,7 +434,7 @@ export const DOSSIERS = [
     title: 'Ce que pensent les hommes…',
     body:
       'Ils parlent peu de sentiments, beaucoup de silence. Psychologues et lecteurs racontent ce qui se joue vraiment derrière la pudeur masculine.',
-    linkUrl: '/culture/ce-que-pensent-les-hommes/',
+    linkUrl: '/grand-angle/ce-que-pensent-les-hommes/',
     linkLabel: 'Retrouvez ici l’intégralité du dossier',
   },
 ]

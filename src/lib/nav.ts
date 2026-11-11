@@ -43,7 +43,7 @@ export const UTILITY_NAV: NavItem[] = [
   { label: 'LES UNES DE VH', href: STATIC_ROUTES.lesUnes },
   { label: 'CONTACT', href: STATIC_ROUTES.contact },
   { label: 'TEAM VH', href: STATIC_ROUTES.teamVh },
-  { label: 'KIT MEDIA', href: '/kit-media.pdf', external: true },
+  { label: 'KIT MEDIA', href: STATIC_ROUTES.kitMedia, external: true },
   { label: 'CHALLENGE', href: 'https://challenge.ma', external: true },
   { label: 'LALLAFATEMA', href: 'https://lallafatema.ma', external: true },
   { label: 'MFM RADIO', href: 'https://mfmradio.ma', external: true },

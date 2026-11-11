@@ -49,7 +49,7 @@ export function Footer({ social }: { social?: Social | null }) {
                 <li key={item.label}>
                   <Link
                     href={item.href || '/'}
-                    {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    {...(item.external ? { target: '_blank', rel: 'noopener noreferrer', prefetch: false } : {})}
                     className="text-[12px] text-white/70 transition-colors hover:text-white"
                   >
                     {item.label}
