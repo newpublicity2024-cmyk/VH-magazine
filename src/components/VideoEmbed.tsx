@@ -3,6 +3,8 @@
 import Image from 'next/image'
 import { useState } from 'react'
 
+import { videoId } from '@/lib/youtube'
+
 /**
  * Click-to-load YouTube facade (spec §9: "Replace Instagram/YouTube heavy
  * embeds with lite facades").
@@ -12,14 +14,6 @@ import { useState } from 'react'
  * i.ytimg.com and only mounts the iframe on click, with `youtube-nocookie` so
  * the reader is not tracked before consenting to watch.
  */
-const ID_RE =
-  /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
-
-export function videoId(url: string): string | null {
-  const m = ID_RE.exec(url)
-  return m ? m[1] : null
-}
-
 export function VideoEmbed({ url, title = 'Vidéo' }: { url: string; title?: string }) {
   const [playing, setPlaying] = useState(false)
   const id = videoId(url)

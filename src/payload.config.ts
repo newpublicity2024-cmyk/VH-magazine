@@ -1,6 +1,7 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import {
   BlockquoteFeature,
+  BlocksFeature,
   BoldFeature,
   FixedToolbarFeature,
   HeadingFeature,
@@ -22,6 +23,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { VideoEmbedBlock } from './blocks/VideoEmbed'
 import { Articles } from './collections/Articles'
 import { Banners } from './collections/Banners'
 import { Categories } from './collections/Categories'
@@ -103,6 +105,9 @@ export default buildConfig({
       OrderedListFeature(),
       BlockquoteFeature(),
       UploadFeature(),
+      // In-text YouTube videos, rendered as the click-to-load facade (RichTextBody);
+      // the migrated WordPress articles carry their embeds as this block (round 2b).
+      BlocksFeature({ blocks: [VideoEmbedBlock] }),
       HorizontalRuleFeature(),
       FixedToolbarFeature(),
       InlineToolbarFeature(),

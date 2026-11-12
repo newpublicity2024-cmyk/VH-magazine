@@ -86,8 +86,33 @@ function renderNode(node: Node, key: string): ReactNode {
       )
     }
     case 'upload': {
-      const v = node.value as { url?: string; alt?: string; width?: number; height?: number } | undefined
+      const v = node.value as
+        | { url?: string; alt?: string; width?: number; height?: number; mimeType?: string }
+        | undefined
       if (!v?.url) return null
+      // Uploaded MP4/MP3 files (migrated WordPress <video>/<audio> players) play
+      // natively; only the metadata loads until the reader presses play.
+      if (v.mimeType?.startsWith('video/')) {
+        return (
+          <video
+            key={key}
+            src={v.url}
+            controls
+            preload="metadata"
+            playsInline
+            className="h-auto w-full"
+          >
+            <a href={v.url}>{v.alt || 'Vidéo'}</a>
+          </video>
+        )
+      }
+      if (v.mimeType?.startsWith('audio/')) {
+        return (
+          <audio key={key} src={v.url} controls preload="metadata" className="w-full">
+            <a href={v.url}>{v.alt || 'Audio'}</a>
+          </audio>
+        )
+      }
       return (
         <Image
           key={key}
@@ -116,5 +141,9 @@ function renderNode(node: Node, key: string): ReactNode {
 export function RichTextBody({ data }: { data: unknown }) {
   const root = (data as { root?: Node } | null)?.root
   if (!root?.children?.length) return null
-  return <div data-article-body className="vh-prose">{renderChildren(root.children, 'n')}</div>
+  return (
+    <div data-article-body className="vh-prose">
+      {renderChildren(root.children, 'n')}
+    </div>
+  )
 }
