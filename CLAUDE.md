@@ -23,14 +23,18 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   130 categories, 27,946 tags and 36,177 redirects are in `vh_migration`
   (`src/migrate/import-articles.ts`); 7 wait for P6, the 202 magazine-issue
   posts wait on an owner decision. Nothing is in Neon yet.
-- `GATES.md` = G1–G42. G40–G41 (2026-11-11) cover two nav links G12 checked by
-  text but never requested — Grand Angle and KIT MEDIA both 404'd. G42 opens an
-  article in the admin (the editor had never rendered — see Landmines).
-- Still open from round 1: the D4 visual punch list never arrived.
-- **Round 3 (design finish) — spec only, not started:** `DESIGN-SPEC-R3.md` applies the
-  Challenge.ma finish (tokens, motion, materials) inside VH's identity. Owner decisions D1–D8
-  (§11) and the real logo + brand red (§12) come first; its gates R3-G1–G12 go into `GATES.md`
-  before any code.
+- `GATES.md` = G1–G42 + R3-G0–R3-G17 (60 gates, 59 runnable). G40–G41 (2026-11-11)
+  cover two nav links G12 checked by text but never requested — Grand Angle and KIT MEDIA
+  both 404'd. G42 opens an article in the admin (the editor had never rendered).
+- Still open from round 1: the D4 visual punch list never arrived (R3-G12 now carries it).
+- **Round 3 (design finish) — built 2026-11-12 on branch `design/round-3`** (from
+  `migration/media-import`; not pushed, not merged). `DESIGN-SPEC-R3.md` with amendments
+  C1–C5; D1–D8 all accepted as recommended. Full ledger from reset: **58/60 met**. Open,
+  both owner inputs: **R3-G3** (VH's logo SVGs — `public/vh-logo*.svg` and
+  `vh-mark-white.svg` are fixed-but-placeholder) and **R3-G12** (written approval of the
+  `.playwright-mcp/r3-after-*` screenshots; `r3-before-*` for comparison). C5 (no global
+  smooth scroll) is a deviation of mine the owner has not yet seen.
+  `scripts/r3-baseline.json` is the pre-R3 perf baseline (commit 3ab214b) — never re-record.
 
 ## Standing harness policy
 
@@ -95,6 +99,22 @@ reported something other than what it measured.
   the map's pathname keys).
 - **Vercel Blob serves HTML as `Content-Disposition: attachment`.** The legacy
   newsletters are proxied inline under a `sandbox` CSP instead of redirected.
+- **No attribute may start with `data-card` except `data-card` itself.** G9, G24 and G25
+  count the substring; `data-card-media` / `-title` tripled every count. Card parts are
+  `data-media` and `data-headline`.
+- **Unlayered CSS beats every `@layer` rule regardless of specificity.** The opt-in motion
+  block in `styles.css` is unlayered, so a rule there overrides the layered open *and*
+  closed states: restate both (the drawer stayed `visibility: hidden` 320 ms after opening,
+  and `focus()` on it silently did nothing).
+- **Never add layout-changing UI after hydration.** The native-share button appended from JS
+  wrapped the share row: CLS 0.05 on mobile articles. Decide with CSS media queries
+  (`pointer-coarse:`); R3-G10 now asserts Lighthouse CLS ≤ 0.02.
+- **A `notFound()` response has no server-rendered body** — not even the layout; React draws
+  it from the flight payload (two root layouts; pre-dates round 3). Test 404s in a browser.
+- **The harness `ok()` exits only after stdout flushes**: code after it keeps running. Never
+  call it mid-script; branch instead.
+- **Chromium reports layout boxes inside a closed `<details>`** (`content-visibility`): use
+  `el.checkVisibility()`, not `getBoundingClientRect()`, to ask "can a reader see this".
 
 ## Conventions
 
@@ -136,6 +156,7 @@ reported something other than what it measured.
 | §3 grey `#888–#999` | `--color-meta: #757575` | `#8a8a8a` is 3.45:1 on white — fails WCAG AA across 53 elements. Colour is a modernization-pass item (§10), so AA wins. **User-approved.** Do not restore. |
 | §8 Drizzle/Prisma + custom admin | Payload CMS 3 | Matches sister sites; admin, media, drafts, rich text come for free. **User-approved.** |
 | Wireframe pairing | Collector, Cool Drives and both Dossiers are full-width stacked | The sketch compacted them; spec §5 and the live site stack them. **User-approved (A2).** |
+| §3 "VH signature red ~#e31e24" | Accent `#166fc1` (VH blue, `--color-accent`) | Never verified; vh.ma's theme accent is `#026bb3`, the 2024 logo `#166fc1`, and `#e31e24` appears nowhere. **Owner decision 2026-11-12 (R3 amendment C1).** Do not reintroduce red. |
 
 ## Commands
 
