@@ -27,6 +27,10 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   text but never requested — Grand Angle and KIT MEDIA both 404'd. G42 opens an
   article in the admin (the editor had never rendered — see Landmines).
 - Still open from round 1: the D4 visual punch list never arrived.
+- **Round 3 (design finish) — spec only, not started:** `DESIGN-SPEC-R3.md` applies the
+  Challenge.ma finish (tokens, motion, materials) inside VH's identity. Owner decisions D1–D8
+  (§11) and the real logo + brand red (§12) come first; its gates R3-G1–G12 go into `GATES.md`
+  before any code.
 
 ## Standing harness policy
 
