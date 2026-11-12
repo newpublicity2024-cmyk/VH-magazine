@@ -7,6 +7,9 @@ import './styles.css'
 import { BackToTop } from '@/components/BackToTop'
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
+import { ImageFader } from '@/components/ImageFader'
+import { Masthead } from '@/components/Masthead'
+import { Toaster } from '@/components/Toaster'
 import { TopBar } from '@/components/TopBar'
 import { getSiteSettings } from '@/lib/queries'
 import { SITE } from '@/lib/site'
@@ -67,23 +70,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={SITE.lang} className={`${inter.variable} ${archivo.variable}`}>
-      <body className="flex min-h-screen flex-col bg-surface text-ink-soft">
+      <body className="flex min-h-screen flex-col bg-canvas text-ink">
         <a
           href="#main"
-          className="sr-only bg-vh-red px-4 py-2 text-white focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[200]"
+          className="type-button sr-only bg-accent px-4 py-3 text-white focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[200]"
         >
-          Aller au contenu principal
+          Aller au contenu
         </a>
 
         <TopBar social={social} />
+        <Masthead />
         <Header social={social} />
 
-        <main id="main" tabIndex={-1} className="flex-1">
+        <main id="main" tabIndex={-1} className="flex-1 outline-none">
           {children}
         </main>
 
         <Footer social={social} />
         <BackToTop />
+        <Toaster />
+        <ImageFader />
       </body>
     </html>
   )

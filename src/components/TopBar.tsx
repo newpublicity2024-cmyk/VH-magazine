@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Fragment } from 'react'
 
 import { SocialLinks } from '@/components/SocialLinks'
 import { UTILITY_NAV } from '@/lib/nav'
@@ -6,38 +7,37 @@ import { UTILITY_NAV } from '@/lib/nav'
 type Social = Partial<Record<'facebook' | 'twitter' | 'instagram' | 'youtube', string | null>>
 
 /**
- * The thin utility strip above the header (spec §4.1): partner and service
- * links separated by pipes, plus the socials.
+ * The utility strip above the masthead (spec §4.1, DESIGN-SPEC-R3 §4.1): partner and
+ * service links plus the socials, on black as part of the masthead (D1).
  *
- * Hidden below `lg` — on mobile these links live in the drawer instead, which
- * is what the live site does and what keeps the strip from wrapping to four
- * lines on a phone. The separators are CSS pseudo-elements rather than literal
- * "|" text nodes so screen readers do not read a pipe between every item.
+ * Desktop only — on mobile these links live in the drawer, as on the live site. The
+ * dividers are empty spans, not "|" text, so screen readers do not read a pipe between
+ * every item.
  */
 export function TopBar({ social }: { social?: Social | null }) {
   return (
-    <div data-nav="topbar" className="hidden border-b border-rule bg-white lg:block">
-      <div className="vh-container flex items-center justify-between gap-6 py-1.5">
+    <div data-nav="topbar" className="vh-topbar hidden lg:block">
+      <div className="vh-container flex h-8 items-center justify-between gap-6">
         <nav aria-label="Liens utiles">
           <ul className="flex flex-wrap items-center">
-            {UTILITY_NAV.map((item) => (
-              <li
-                key={item.label}
-                className="after:mx-2 after:text-rule after:content-['|'] last:after:content-['']"
-              >
-                <Link
-                  href={item.href || '/'}
-                  {...(item.external ? { target: '_blank', rel: 'noopener noreferrer', prefetch: false } : {})}
-                  className="text-[10px] font-medium uppercase tracking-[0.06em] text-meta transition-colors hover:text-vh-red"
-                >
-                  {item.label}
-                </Link>
-              </li>
+            {UTILITY_NAV.map((item, i) => (
+              <Fragment key={item.label}>
+                {i > 0 ? <li aria-hidden="true" className="vh-topbar-sep" /> : null}
+                <li>
+                  <Link
+                    href={item.href || '/'}
+                    {...(item.external ? { target: '_blank', rel: 'noopener noreferrer', prefetch: false } : {})}
+                    className="type-micro vh-hover-line text-night-ink-2 transition-colors hover:text-white"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              </Fragment>
             ))}
           </ul>
         </nav>
 
-        <SocialLinks social={social} className="text-meta" iconClassName="h-3.5 w-3.5" />
+        <SocialLinks social={social} className="gap-4 text-night-ink-2" iconClassName="h-4 w-4" />
       </div>
     </div>
   )

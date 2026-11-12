@@ -24,6 +24,7 @@ import {
 import { STATIC_ROUTES } from '@/lib/routes'
 import { absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
+import { typoFr } from '@/lib/typo-fr'
 import { buildSafe } from '@/lib/build-safe'
 import type { Article } from '@/payload-types'
 
@@ -110,105 +111,100 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="vh-container py-6">
+    <div className="pt-8 pb-4 lg:pt-12">
       <JsonLd data={webSite} />
       <JsonLd data={organization} />
 
-      {/* Spec §9: exactly one h1. Visually hidden — the live design leads with
-          the Actu band, not a page title, but the document still needs a root. */}
+      {/* Spec §9: exactly one h1. Visually hidden — the design leads with the Actu band,
+          not a page title, but the document still needs a root. */}
       <h1 className="sr-only">VH Magazine — {SITE.tagline}</h1>
 
-      {/* ── Two-column region: main column + sidebar (spec §5.1–5.4) ───────── */}
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div data-region="main-column" className="space-y-10 lg:col-span-2">
-          <CategoryBlock
-            sectionKey="actu"
-            title="Actu"
-            href="/category/actualite-news-express-maroc/"
-            articles={actu}
-            columns={2}
-            priorityFirst
-          />
-          <CategoryBlock
-            sectionKey="lifestyle"
-            title="Lifestyle"
-            href="/category/lifestyle-homme-maroc/"
-            articles={lifestyle}
-            columns={2}
-          />
-          <CategoryBlock
-            sectionKey="moteur"
-            title="Moteur"
-            href="/category/moteur/"
-            articles={moteur}
-            columns={2}
-          />
+      <div className="vh-stack">
+        {/* ── Two-column region: main column + sidebar (spec §5.1–5.4) ─────── */}
+        <div className="vh-container">
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div data-region="main-column" className="vh-stack">
+              <CategoryBlock
+                sectionKey="actu"
+                title="Actu"
+                href="/category/actualite-news-express-maroc/"
+                articles={actu}
+                layout="lead"
+                priorityFirst
+              />
+              <CategoryBlock
+                sectionKey="lifestyle"
+                title="Lifestyle"
+                href="/category/lifestyle-homme-maroc/"
+                articles={lifestyle}
+                columns={2}
+              />
+              <CategoryBlock
+                sectionKey="moteur"
+                title="Moteur"
+                href="/category/moteur/"
+                articles={moteur}
+                columns={2}
+              />
+            </div>
+
+            <aside data-region="sidebar" data-section="sidebar" aria-label="Colonne latérale">
+              <SidebarWidget title="Numéro collector" widgetKey="collector-promo">
+                <PromoBanner banner={banners.collector} />
+              </SidebarWidget>
+
+              <SidebarWidget title="The Shift Podcast" widgetKey="podcast">
+                <PromoBanner banner={banners.podcast} />
+              </SidebarWidget>
+
+              <SidebarWidget widgetKey="newsletter">
+                <NewsletterForm />
+              </SidebarWidget>
+
+              <SidebarWidget title="Instagram" widgetKey="instagram">
+                <InstagramCard />
+              </SidebarWidget>
+
+              <ArticleList title="Les plus lus" widgetKey="most-read" articles={mostRead} ranked />
+              <ArticleList title="Derniers articles" widgetKey="latest-articles" articles={latest} />
+            </aside>
+          </div>
         </div>
 
-        <aside data-region="sidebar" data-section="sidebar" aria-label="Colonne latérale">
-          <SidebarWidget title="Numéro collector" widgetKey="collector-promo">
-            <PromoBanner banner={banners.collector} />
-          </SidebarWidget>
+        {/* ── Full-width sections, stacked in spec §5 order (amendment A2) ──── */}
+        <div className="vh-container vh-stack">
+          {/* §5.5 */}
+          <section data-section="whos-who" aria-label="Who's Who">
+            <PromoBanner banner={banners['whos-who']} sizes="(min-width: 1240px) 1176px, 100vw" />
+          </section>
 
-          <SidebarWidget title="The Shift Podcast" widgetKey="podcast">
-            <PromoBanner banner={banners.podcast} />
-          </SidebarWidget>
+          {/* §5.6 */}
+          <section data-section="chroniques-cigare" aria-labelledby="chroniques-heading">
+            <SectionTitle title="Chroniques cigare" id="chroniques-heading" />
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5">
+              {chroniques.map((article) => (
+                <ArticleCard key={article.id} article={article} variant="compact" />
+              ))}
+            </div>
+          </section>
 
-          <SidebarWidget widgetKey="newsletter">
-            <NewsletterForm />
-          </SidebarWidget>
+          {/* §5.7 — full width, NOT paired with Cool Drives (amendment A2) */}
+          <section data-section="collector" aria-labelledby="collector-heading">
+            <SectionTitle title="Un collector à ne pas manquer !" id="collector-heading" />
+            <PromoBanner banner={banners['collector-sport']} sizes="(min-width: 1240px) 1176px, 100vw" />
+          </section>
 
-          <SidebarWidget title="Instagram" widgetKey="instagram">
-            <InstagramCard />
-          </SidebarWidget>
-
-          <ArticleList title="Les plus lus" widgetKey="most-read" articles={mostRead} />
-          <ArticleList title="Derniers articles" widgetKey="latest-articles" articles={latest} />
-        </aside>
-      </div>
-
-      {/* ── Full-width sections, stacked in spec §5 order ──────────────────── */}
-
-      {/* §5.5 */}
-      <section data-section="whos-who" className="mt-12" aria-label="Who's Who">
-        <PromoBanner banner={banners['whos-who']} sizes="100vw" />
-      </section>
-
-      {/* §5.6 */}
-      <section data-section="chroniques-cigare" className="mt-12" aria-labelledby="chroniques-heading">
-        <div id="chroniques-heading">
-          <SectionTitle title="Chroniques cigare" />
+          {/* §5.8 — its own section (amendment A2) */}
+          <section data-section="cool-drives" aria-labelledby="cool-drives-heading">
+            <SectionTitle title="Cool Drives By Rafik Lahlou" id="cool-drives-heading" />
+            <PromoBanner banner={coolDrives} sizes="(min-width: 1240px) 1176px, 100vw" />
+            {coolDrives?.body ? (
+              <p className="type-copy mx-auto mt-6 max-w-[45rem] text-center text-ink-2">{typoFr(coolDrives.body)}</p>
+            ) : null}
+          </section>
         </div>
-        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
-          {chroniques.map((article) => (
-            <ArticleCard key={article.id} article={article} variant="compact" />
-          ))}
-        </div>
-      </section>
 
-      {/* §5.7 — full width, NOT paired with Cool Drives (amendment A2) */}
-      <section data-section="collector" className="mt-12" aria-labelledby="collector-heading">
-        <div id="collector-heading">
-          <SectionTitle title="Un collector à ne pas manquer !" />
-        </div>
-        <PromoBanner banner={banners['collector-sport']} sizes="100vw" />
-      </section>
-
-      {/* §5.8 — full width, its own section (amendment A2) */}
-      <section data-section="cool-drives" className="mt-12" aria-labelledby="cool-drives-heading">
-        <div id="cool-drives-heading">
-          <SectionTitle title="Cool Drives By Rafik Lahlou" />
-        </div>
-        <PromoBanner banner={coolDrives} sizes="100vw" />
-        {coolDrives?.body ? (
-          <p className="mx-auto mt-4 max-w-3xl text-center text-[14px] leading-relaxed text-ink-soft/80">
-            {coolDrives.body}
-          </p>
-        ) : null}
-      </section>
-
-      {/* §5.9 */}
-      <div className="mt-12">
+        {/* §5.9 — on black, edge to edge (decision D5) */}
         <CategoryBlock
           sectionKey="videos"
           title="Vidéos"
@@ -216,58 +212,58 @@ export default async function HomePage() {
           articles={videos}
           columns={3}
           variant="video"
-          moreLabel="Voir plus"
+          tone="dark"
         />
-      </div>
 
-      {/* §5.10 */}
-      <section data-section="magazine-banner" className="mt-12" aria-label="Toutes les unes de VH">
-        <PromoBanner banner={banners.unes} sizes="100vw" />
-      </section>
+        {/* §5.10 */}
+        <div className="vh-container">
+          <section data-section="magazine-banner" aria-label="Toutes les unes de VH">
+            <PromoBanner banner={banners.unes} sizes="(min-width: 1240px) 1176px, 100vw" />
+          </section>
+        </div>
 
-      {/* §5.11 */}
-      <div className="mt-12">
+        {/* §5.11 — on black (D5) */}
         <CategoryBlock
           sectionKey="people"
           title="People"
           href="/category/people-celebrites/"
           articles={people}
           columns={5}
+          tone="dark"
         />
+
+        <div className="vh-container vh-stack">
+          {/* §5.12 — strips STACKED full width (amendment A2) */}
+          <section data-section="dossiers" className="space-y-16" aria-label="Dossiers">
+            {banners['le-luxe'] ? (
+              <PromoBanner banner={banners['le-luxe']} sizes="(min-width: 1240px) 1176px, 100vw" />
+            ) : null}
+            {dossiers.map((dossier, index) => (
+              <DossierStrip
+                key={dossier.id || index}
+                title={dossier.title}
+                body={dossier.body}
+                linkUrl={dossier.linkUrl}
+                linkLabel={dossier.linkLabel}
+                image={dossier.image}
+              />
+            ))}
+          </section>
+
+          {/* §5.13 — hidden entirely when there are no issues (migration decision pending) */}
+          {issues.length > 0 ? (
+            <section data-section="unes" aria-labelledby="unes-heading">
+              <SectionTitle title="Toutes nos unes" href={STATIC_ROUTES.lesUnes} id="unes-heading" />
+              <CoverGrid issues={issues} />
+              <div className="mt-10 flex justify-center">
+                <Link data-button href={STATIC_ROUTES.lesUnes} className="vh-button type-button">
+                  Voir plus
+                </Link>
+              </div>
+            </section>
+          ) : null}
+        </div>
       </div>
-
-      {/* §5.12 — two strips STACKED full width (amendment A2) */}
-      <section data-section="dossiers" className="mt-12 space-y-8" aria-label="Dossiers">
-        {banners['le-luxe'] ? (
-          <PromoBanner banner={banners['le-luxe']} sizes="100vw" />
-        ) : null}
-        {dossiers.map((dossier, index) => (
-          <DossierStrip
-            key={dossier.id || index}
-            title={dossier.title}
-            body={dossier.body}
-            linkUrl={dossier.linkUrl}
-            linkLabel={dossier.linkLabel}
-            image={dossier.image}
-          />
-        ))}
-      </section>
-
-      {/* §5.13 */}
-      <section data-section="unes" className="mt-12" aria-labelledby="unes-heading">
-        <div id="unes-heading">
-          <SectionTitle title="Toutes nos unes" href={STATIC_ROUTES.lesUnes} />
-        </div>
-        <CoverGrid issues={issues} />
-        <div className="mt-5 flex justify-center">
-          <Link
-            href={STATIC_ROUTES.lesUnes}
-            className="border border-ink px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-ink hover:text-white"
-          >
-            Voir plus
-          </Link>
-        </div>
-      </section>
     </div>
   )
 }

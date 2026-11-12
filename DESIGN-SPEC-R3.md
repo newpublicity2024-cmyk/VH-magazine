@@ -21,6 +21,11 @@ the vendored fonts `main` cannot build without).
   4.23:1 (fails AA). Secondary text on a `canvas-2` surface uses `ink-2`, never `meta`.
   Accent text never sits on black at small sizes (4.08:1): on black it is
   `accent-on-dark`.
+- **C5 — no global `scroll-behavior: smooth`** (§3.6 asked for it under no-preference).
+  On `html` it animates every programmatic scroll, not just anchor jumps: Next's route
+  changes and scroll restoration, find-in-page, and the gates' own scripted scrolls
+  (back-to-top was still mid-scroll 400 ms after `scrollTo(0)`). Smooth scrolling is
+  applied per action instead — back to top, the VH TV player swap — and honours reduce.
 
 Audience: the owner (decisions in §11, assets in §12) and the session that builds it
 (everything else). Read §0–§2 first, then work §9 in order.

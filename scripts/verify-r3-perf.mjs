@@ -8,6 +8,9 @@
  *  2. Lighthouse mobile performance (default mobile emulation, simulated throttling)
  *     is ≥ 90 on home, article and category: the median of three runs per page, so one
  *     noisy run can neither pass nor fail the gate on its own.
+ *  3. Lighthouse CLS (median of the same runs) is ≤ 0.02 on each page (spec §8). Mobile
+ *     emulation is touch, so it catches shifts the desktop scroll test (R3-G6) cannot —
+ *     it caught the share row growing after hydration (CLS 0.05 on articles).
  *
  * `--record-baseline` measures the CURRENT build and writes scripts/r3-baseline.json
  * with the commit it was measured on. It was run once, on the untouched round-2b
@@ -27,6 +30,7 @@ const RECORD = process.argv.includes('--record-baseline')
 const JS_BUDGET_BYTES = 15 * 1024
 const LH_MIN = 90
 const LH_RUNS = 3
+const CLS_MAX = 0.02
 
 const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]
 
@@ -109,7 +113,7 @@ const measured = await withBrowser(async ({ page, baseUrl, pageErrors }) => {
   for (const [key, url] of Object.entries(urls)) {
     const runs = []
     for (let i = 0; i < LH_RUNS; i += 1) runs.push(await lighthouseScore(url, chromePath))
-    lh[key] = { score: median(runs.map((r) => r.score)), runs }
+    lh[key] = { score: median(runs.map((r) => r.score)), cls: median(runs.map((r) => r.cls)), runs }
     console.error(
       `  lighthouse ${key}: median ${lh[key].score} (runs ${runs.map((r) => r.score).join('/')}; ` +
         `lcp ${runs.map((r) => r.lcp).join('/')} ms; cls ${runs.map((r) => r.cls).join('/')}; ` +
@@ -174,11 +178,12 @@ function check() {
     )
     console.error(`  js growth ${key}: ${growth} B gz (budget ${JS_BUDGET_BYTES})`)
   }
-  for (const [key, { score }] of Object.entries(measured.lh)) {
+  for (const [key, { score, cls }] of Object.entries(measured.lh)) {
     assert(
       score >= LH_MIN,
       `Lighthouse mobile performance on ${key} is ${score} (median of ${LH_RUNS}) — needs ≥ ${LH_MIN}`,
     )
+    assert(cls <= CLS_MAX, `Lighthouse CLS on ${key} is ${cls} (median of ${LH_RUNS}) — spec §8 allows ≤ ${CLS_MAX}`)
   }
 
   ok('R3_PERF_OK')

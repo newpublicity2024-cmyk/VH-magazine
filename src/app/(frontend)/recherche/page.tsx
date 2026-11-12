@@ -1,12 +1,17 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+
+import { ArticleCard } from '@/components/ArticleCard'
 
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Pagination } from '@/components/Pagination'
 import { SectionTitle } from '@/components/SectionHeader'
 import { formatDate, isoDate } from '@/lib/format'
 import { STATIC_ROUTES, articleUrlFromPath, searchUrl } from '@/lib/routes'
+import { getLatestArticles } from '@/lib/queries'
 import { searchArticles } from '@/lib/search'
+import { typoFr } from '@/lib/typo-fr'
 import { buildMetadata } from '@/lib/seo'
 
 /** Results depend entirely on the query string, so there is nothing to cache. */
@@ -36,71 +41,96 @@ export default async function SearchPage({ searchParams }: Props) {
     ? await searchArticles(term, page)
     : { hits: [], total: 0, page: 1, totalPages: 0 }
 
-  return (
-    <div className="vh-container py-6">
-      <Breadcrumbs items={[{ label: 'Accueil', href: '/' }, { label: 'Recherche', href: STATIC_ROUTES.recherche }]} />
-      <h1 className="font-display text-2xl font-bold text-ink">Recherche</h1>
+  // No result (or no query yet): offer the latest articles rather than a dead end.
+  const latest = result.hits.length === 0 ? await getLatestArticles(6).catch(() => []) : []
 
-      <form role="search" action={STATIC_ROUTES.recherche} method="get" className="mt-5 max-w-xl">
-        <label htmlFor="vh-q" className="sr-only">Rechercher un article</label>
-        <div className="flex">
+  return (
+    <div className="vh-container pt-8 lg:pt-12">
+      <Breadcrumbs items={[{ label: 'Accueil', href: '/' }, { label: 'Recherche', href: STATIC_ROUTES.recherche }]} />
+
+      <header className="mx-auto max-w-[45rem]">
+        <h1 className="type-h1-page text-ink">Recherche</h1>
+        <form role="search" action={STATIC_ROUTES.recherche} method="get" className="mt-6 flex gap-2">
+          <label htmlFor="vh-q" className="sr-only">
+            Rechercher un article
+          </label>
           <input
             id="vh-q"
             name="q"
             type="search"
             defaultValue={term}
-            placeholder="Rechercher…"
-            className="w-full border border-rule px-3 py-2.5 text-[14px] outline-none focus:border-ink"
+            placeholder="Rechercher un article…"
+            className="vh-input type-search min-h-14"
           />
-          <button
-            type="submit"
-            className="shrink-0 bg-ink px-5 text-[12px] font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-vh-red"
-          >
+          <button type="submit" className="vh-button-solid type-button min-h-14 shrink-0">
             Chercher
           </button>
-        </div>
-      </form>
+        </form>
 
-      {term ? (
-        <p data-search-summary className="mt-5 text-[13px] text-meta">
-          {result.total === 0
-            ? `Aucun résultat pour « ${term} ».`
-            : `${result.total} résultat${result.total > 1 ? 's' : ''} pour « ${term} ».`}
-        </p>
-      ) : null}
+        {term ? (
+          <p data-search-summary className="type-copy mt-6 text-ink-2">
+            {result.total === 0
+              ? `Aucun résultat pour « ${term} ».`
+              : `${result.total} résultat${result.total > 1 ? 's' : ''} pour « ${term} ».`}
+          </p>
+        ) : null}
+      </header>
 
       {result.hits.length > 0 ? (
-        <>
-          <div className="mt-6">
-            <SectionTitle title="Résultats" />
-          </div>
-          <ul data-search-results className="divide-y divide-rule border-y border-rule">
+        <div className="mx-auto mt-10 max-w-[45rem]">
+          <ul data-search-results className="vh-rows">
             {result.hits.map((hit) => {
-              // Rebuild the nested path from the joined parent/child slugs so a
-              // result links to the same URL the article route serves.
+              // Rebuild the nested path from the joined parent/child slugs so a result
+              // links to the same URL the article route serves.
               const path = [hit.parent_slug, hit.category_slug].filter(Boolean).join('/')
               const href = articleUrlFromPath(path, hit.slug)
               return (
-                <li key={hit.id} className="py-4">
-                  <h2 className="text-[16px] font-semibold leading-snug text-ink">
-                    <Link href={href} className="transition-colors hover:text-vh-red">{hit.title}</Link>
-                  </h2>
-                  {hit.excerpt ? (
-                    <p className="mt-1 line-clamp-2 text-[13px] text-ink-soft/80">{hit.excerpt}</p>
-                  ) : null}
-                  <time data-date dateTime={isoDate(hit.published_at)} className="mt-1 block text-[11px] text-meta">
-                    {formatDate(hit.published_at)}
-                  </time>
+                <li key={hit.id} className="vh-card flex gap-4 py-6 sm:gap-6">
+                  <div className="vh-card-media aspect-[4/3] w-28 shrink-0 sm:w-40">
+                    {hit.thumb_url ? (
+                      <Image
+                        src={hit.thumb_url}
+                        alt=""
+                        width={160}
+                        height={160}
+                        sizes="160px"
+                        loading="lazy"
+                        data-fade
+                        className="h-full w-full object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {hit.category_name ? (
+                      <p className="type-kicker mb-2 text-accent">{hit.category_name}</p>
+                    ) : null}
+                    <h2 className="type-title text-ink">
+                      <Link href={href} className="vh-card-link">
+                        {typoFr(hit.title)}
+                      </Link>
+                    </h2>
+                    {hit.excerpt ? (
+                      <p className="type-copy vh-clamp-2 mt-2 hidden text-ink-2 sm:block">{typoFr(hit.excerpt)}</p>
+                    ) : null}
+                    <time data-date dateTime={isoDate(hit.published_at)} className="type-meta mt-3 block text-meta">
+                      {formatDate(hit.published_at)}
+                    </time>
+                  </div>
                 </li>
               )
             })}
           </ul>
-          <Pagination
-            page={result.page}
-            totalPages={result.totalPages}
-            hrefFor={(n) => searchUrl(term, n)}
-          />
-        </>
+          <Pagination page={result.page} totalPages={result.totalPages} hrefFor={(n) => searchUrl(term, n)} />
+        </div>
+      ) : latest.length > 0 ? (
+        <section className="mt-16" aria-labelledby="latest-heading">
+          <SectionTitle title="Derniers articles" id="latest-heading" />
+          <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+            {latest.map((a) => (
+              <ArticleCard key={a.id} article={a} kicker />
+            ))}
+          </div>
+        </section>
       ) : null}
     </div>
   )

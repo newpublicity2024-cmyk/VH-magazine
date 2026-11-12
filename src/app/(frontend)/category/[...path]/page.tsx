@@ -1,10 +1,9 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
-import { ArticleCard } from '@/components/ArticleCard'
+import { Listing, ListingHeader } from '@/components/Listing'
 import { Breadcrumbs, type Crumb } from '@/components/Breadcrumbs'
 import { Pagination } from '@/components/Pagination'
-import { SectionHeader } from '@/components/SectionHeader'
 import { getCategoryByPath, getCategoryPage, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, categoryPageUrl, categoryUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
@@ -69,33 +68,19 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   ]
 
   return (
-    <div className="vh-container py-6">
+    <div className="vh-container pt-8 lg:pt-12">
       <Breadcrumbs items={crumbs} />
 
-      <h1 className="sr-only">
-        {category.name}
-        {page > 1 ? ` — page ${page}` : ''}
-      </h1>
-
-      <SectionHeader title={category.name} href={categoryUrl(category as never)} moreLabel={null} />
-
-      {category.description ? (
-        <p className="mt-4 max-w-3xl text-[14px] leading-relaxed text-ink-soft/80">
-          {category.description}
-        </p>
-      ) : null}
+      <ListingHeader title={category.name} page={page}>
+        {category.description ? (
+          <p className="type-copy mt-4 max-w-[45rem] text-ink-2">{category.description}</p>
+        ) : null}
+      </ListingHeader>
 
       {result.docs.length === 0 ? (
-        <p className="mt-8 text-[14px] text-meta">Aucun article dans cette catégorie pour le moment.</p>
+        <p className="type-copy text-ink-2">Aucun article dans cette catégorie pour le moment.</p>
       ) : (
-        <div
-          data-category-grid
-          className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {result.docs.map((article, i) => (
-            <ArticleCard key={article.id} article={article} priority={page === 1 && i === 0} />
-          ))}
-        </div>
+        <Listing articles={result.docs} page={page} />
       )}
 
       <Pagination

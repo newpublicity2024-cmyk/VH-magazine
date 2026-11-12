@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -7,6 +8,7 @@ import { formatDate, isoDate } from '@/lib/format'
 import { getIssueBySlug } from '@/lib/queries'
 import { STATIC_ROUTES, issueUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
+import { typoFr } from '@/lib/typo-fr'
 import type { Media } from '@/payload-types'
 
 export const revalidate = 3600
@@ -35,8 +37,10 @@ export default async function SommairePage({ params }: Props) {
 
   const cover = asMedia(issue.cover)
 
+  const pdf = asMedia(issue.pdf)
+
   return (
-    <div className="vh-container py-6">
+    <div className="vh-container pt-8 lg:pt-12">
       <Breadcrumbs
         items={[
           { label: 'Accueil', href: '/' },
@@ -44,27 +48,38 @@ export default async function SommairePage({ params }: Props) {
           { label: issue.title, href: issueUrl(issue) },
         ]}
       />
-      <article data-issue className="grid gap-8 md:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+      <article data-issue className="grid items-start gap-10 md:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-16">
         {cover?.url ? (
-          <Image
-            src={cover.url}
-            alt={cover.alt || issue.title}
-            width={cover.width || 720}
-            height={cover.height || 960}
-            sizes="(min-width: 768px) 320px, 100vw"
-            priority
-            fetchPriority="high"
-            className="h-auto w-full"
-          />
+          <div className="vh-cover vh-edge bg-canvas-2">
+            <Image
+              src={cover.url}
+              alt={cover.alt || issue.title}
+              width={cover.width || 720}
+              height={cover.height || 960}
+              sizes="(min-width: 768px) 340px, 100vw"
+              priority
+              fetchPriority="high"
+              className="h-auto w-full"
+            />
+          </div>
         ) : null}
-        <div>
-          <h1 className="font-display text-3xl font-bold leading-tight text-ink">{issue.title}</h1>
-          <time data-date dateTime={isoDate(issue.publishedAt)} className="mt-2 block text-[12px] text-meta">
+        <div className="max-w-[45rem]">
+          <p className="type-kicker text-accent">VH N°{issue.number}</p>
+          <h1 className="type-h1-page mt-3 text-ink">{issue.title}</h1>
+          <time data-date dateTime={isoDate(issue.publishedAt)} className="type-meta mt-3 block text-meta">
             {formatDate(issue.publishedAt)}
           </time>
-          {issue.summary ? (
-            <p className="mt-5 text-[15px] leading-relaxed text-ink-soft/90">{issue.summary}</p>
-          ) : null}
+          {issue.summary ? <p className="type-lead mt-8 whitespace-pre-line">{typoFr(issue.summary)}</p> : null}
+          <div className="mt-10 flex flex-wrap gap-3">
+            {pdf?.url ? (
+              <a data-button href={pdf.url} target="_blank" rel="noopener noreferrer" className="vh-button-solid type-button">
+                Lire le numéro (PDF)
+              </a>
+            ) : null}
+            <Link data-button href={STATIC_ROUTES.lesUnes} className="vh-button type-button">
+              Toutes nos unes
+            </Link>
+          </div>
         </div>
       </article>
     </div>

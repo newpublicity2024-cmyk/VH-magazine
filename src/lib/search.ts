@@ -24,6 +24,9 @@ export type SearchHit = {
   published_at: string | null
   category_slug: string | null
   parent_slug: string | null
+  category_name: string | null
+  /** The 160 px square rendition when it exists, else the original. */
+  thumb_url: string | null
   rank: number
 }
 
@@ -56,12 +59,15 @@ export async function searchArticles(
            a.published_at,
            c.slug  as category_slug,
            pc.slug as parent_slug,
+           c.name  as category_name,
+           coalesce(m.sizes_thumb_url, m.url) as thumb_url,
            ts_rank(a.search_vector, q.tsq) as rank,
            count(*) over() as total
       from articles a
       cross join q
       left join categories c  on c.id  = a.category_id
       left join categories pc on pc.id = c.parent_id
+      left join media m on m.id = a.featured_image_id
      where a._status = 'published'
        and a.search_vector @@ q.tsq
      order by rank desc, a.published_at desc

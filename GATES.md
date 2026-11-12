@@ -223,3 +223,98 @@ The migration itself is gated in the migration workspace
   CHECK: node scripts/verify-admin-editor.mjs
   EXPECT: ADMIN_EDITOR_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=61c8a1af3b14e63b23d076e44efc0372455a39a0efc170f51dda53fb3b24949d; output-bytes=16
+
+## Round 3 — design finish (DESIGN-SPEC-R3.md, amendments C1–C4, decisions D1–D8)
+
+Contract: DESIGN-SPEC-R3.md §10 (R3-G1–R3-G17). Branch `design/round-3`. R3-G3 waits on
+VH's logo SVGs and R3-G12 on the owner's written approval: both are handoffs, not
+failures to fix in code. Regression: G1–G42 above are reset to pending and re-run on
+the round-3 build (standing harness policy).
+
+- [ ] R3-G0: This ledger's oracles are lint-clean
+  CHECK: node /Users/mc/.claude/skills/unlazy/scripts/gate-lint.mjs GATES.md
+  EXPECT: LINT OK
+  EVIDENCE: pending
+
+- [ ] R3-G1: Only spec tokens compile into the shipped frontend CSS, and the source rules hold: no raw hex, no red, no uppercase utility, no literal duration, no off-scale spacing, no default type/radius/shadow utility in components
+  CHECK: node scripts/verify-r3-tokens.mjs
+  EXPECT: R3_TOKENS_OK
+  EVIDENCE: pending
+
+- [ ] R3-G2: Every date, kicker, band label, nav link, button, body link and dark-section title measures at least 4.5:1 (3:1 for large text) against its composited background at 1440 and 390
+  CHECK: node scripts/verify-r3-contrast.mjs
+  EXPECT: R3_CONTRAST_OK
+  EVIDENCE: pending
+
+- [ ] R3-G3: The real VH logo ships: no placeholder SVG in public/, and every logo's drawn bounding box lies inside its viewBox
+  CHECK: node scripts/verify-r3-logo.mjs
+  EXPECT: R3_LOGO_OK
+  EVIDENCE: pending
+
+- [ ] R3-G4: A hovered card's image computes scale(1.03) over a 600 ms ease-standard transition and its title gains an accent underline while staying ink, and under reduced motion the image does not transform
+  CHECK: node scripts/verify-r3-hover.mjs
+  EXPECT: R3_HOVER_OK
+  EVIDENCE: pending
+
+- [ ] R3-G5: The drawer and the search panel exist while closed as inert, animate open and closed with their motion tokens, trap Tab, close on Escape and return focus to their trigger
+  CHECK: node scripts/verify-r3-overlays.mjs
+  EXPECT: R3_OVERLAYS_OK
+  EVIDENCE: pending
+
+- [ ] R3-G6: The sticky bar keeps one height at scroll 0 and 800, the compact mark appears only after the masthead scrolls away, and a scripted scroll accumulates CLS of at most 0.02
+  CHECK: node scripts/verify-r3-compact.mjs
+  EXPECT: R3_COMPACT_OK
+  EVIDENCE: pending
+
+- [ ] R3-G7: With reduced motion emulated, no element on home, article or the open drawer transitions a transform or animates, except the reading-progress bar and opacity fades of at most 150 ms, and scrolling is not smooth
+  CHECK: node scripts/verify-r3-reduced.mjs
+  EXPECT: R3_REDUCED_OK
+  EVIDENCE: pending
+
+- [ ] R3-G8: Articles read clearly — paragraphs at least 16 px apart, body at least 17 px, column at most 720 px, balanced h1 — and every migrated body in vh_migration consists only of block nodes the renderer maps to spaced block elements
+  CHECK: node scripts/verify-r3-reading.mjs
+  EXPECT: R3_READING_OK
+  EVIDENCE: pending
+
+- [ ] R3-G9: On home, category and article, every card shows its title and date without hover: rendered, opaque, visible and not clipped
+  CHECK: node scripts/verify-r3-visible.mjs
+  EXPECT: R3_VISIBLE_OK
+  EVIDENCE: pending
+
+- [ ] R3-G10: First-party JS on home and article grows at most 15 KB gz over the recorded pre-round-3 baseline, and Lighthouse mobile (median of 3) scores at least 90 with CLS at most 0.02 on home, article and category
+  CHECK: node scripts/verify-r3-perf.mjs
+  EXPECT: R3_PERF_OK
+  EVIDENCE: pending
+
+- [ ] R3-G11: axe reports zero serious or critical violations on home, article, category, search and 404 at 1440 and 390, and on the open drawer and search panel
+  CHECK: node scripts/verify-r3-a11y.mjs
+  EXPECT: R3_A11Y_OK
+  EVIDENCE: pending
+
+- [ ] R3-G12: The owner approves the round-3 look in writing from the r3-after screenshot set (home, article, category, VH TV, search open, drawer open, 404 at 1440 and 390)
+  EVIDENCE: pending
+
+- [ ] R3-G13: The decisions render as decided: accent #166fc1 with no red token (C1), black masthead (D1), square image corners and 12 px floating panels (D2), no View Transitions (D4), Vidéos and People on black (D5), titles below images (D6), logo centred in the masthead and left in the compact bar (D7), rank numerals 1–5 in Les plus lus (D8)
+  CHECK: node scripts/verify-r3-decisions.mjs
+  EXPECT: R3_DECISIONS_OK
+  EVIDENCE: pending
+
+- [ ] R3-G14: Live search (D3): /api/search returns at most 6 hits for a seeded term, none under 2 characters, survives an injection payload, and typing in the panel lists the hits plus a "Voir tous les résultats" link to /recherche/?q=
+  CHECK: node scripts/verify-r3-livesearch.mjs
+  EXPECT: R3_LIVESEARCH_OK
+  EVIDENCE: pending
+
+- [ ] R3-G15: typoFr is idempotent and never leaves a plain space beside a narrow no-break space across every migrated title, leaves URLs and times untouched, and a rendered seeded title carries U+202F before its question mark
+  CHECK: node scripts/verify-r3-typo.mjs
+  EXPECT: R3_TYPO_OK
+  EVIDENCE: pending
+
+- [ ] R3-G16: An unknown path renders the designed 404: status 404, h1 "Page introuvable", a search form and the 6 latest articles
+  CHECK: node scripts/verify-r3-notfound.mjs
+  EXPECT: R3_NOTFOUND_OK
+  EVIDENCE: pending
+
+- [ ] R3-G17: The rest of the spec inventory is present: reading progress and reading time on articles, share row with WhatsApp, LinkedIn and a copy-link toast, listings opening with a lead card then horizontal rows, VH TV swapping its featured player in place, covers grouped by year, footer accordions at 390, back-to-top only after 600 px, and a print stylesheet
+  CHECK: node scripts/verify-r3-inventory.mjs
+  EXPECT: R3_INVENTORY_OK
+  EVIDENCE: pending

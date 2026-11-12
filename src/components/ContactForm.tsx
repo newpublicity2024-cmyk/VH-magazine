@@ -13,7 +13,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="bg-ink px-6 py-2.5 text-[12px] font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-vh-red disabled:opacity-70"
+      className="vh-button-solid type-button"
     >
       {pending ? 'Envoi…' : 'Envoyer'}
     </button>
@@ -23,7 +23,7 @@ function SubmitButton() {
 export function ContactForm() {
   const [state, formAction] = useActionState(submitContactMessage, INITIAL)
 
-  const field = 'w-full border border-rule px-3 py-2.5 text-[14px] outline-none focus:border-ink'
+  const field = 'vh-input type-copy'
 
   return (
     <form data-contact-form action={formAction} className="max-w-xl space-y-4">
@@ -38,19 +38,19 @@ export function ContactForm() {
       </div>
 
       <div>
-        <label htmlFor="vh-name" className="mb-1 block text-[12px] font-semibold text-ink">Nom *</label>
+        <label htmlFor="vh-name" className="type-copy-sm mb-2 block font-semibold text-ink">Nom *</label>
         <input id="vh-name" name="name" required autoComplete="name" className={field} />
       </div>
       <div>
-        <label htmlFor="vh-email" className="mb-1 block text-[12px] font-semibold text-ink">E-mail *</label>
+        <label htmlFor="vh-email" className="type-copy-sm mb-2 block font-semibold text-ink">E-mail *</label>
         <input id="vh-email" name="email" type="email" required autoComplete="email" className={field} />
       </div>
       <div>
-        <label htmlFor="vh-subject" className="mb-1 block text-[12px] font-semibold text-ink">Objet</label>
+        <label htmlFor="vh-subject" className="type-copy-sm mb-2 block font-semibold text-ink">Objet</label>
         <input id="vh-subject" name="subject" className={field} />
       </div>
       <div>
-        <label htmlFor="vh-message" className="mb-1 block text-[12px] font-semibold text-ink">Message *</label>
+        <label htmlFor="vh-message" className="type-copy-sm mb-2 block font-semibold text-ink">Message *</label>
         <textarea id="vh-message" name="message" required rows={6} className={field} />
       </div>
 
@@ -60,7 +60,7 @@ export function ContactForm() {
         data-contact-status
         role="status"
         aria-live="polite"
-        className={`text-[13px] ${state.status === 'error' ? 'text-vh-red' : 'text-ink'} ${
+        className={`type-copy-sm text-ink ${state.status === 'error' ? 'font-semibold' : ''} ${
           state.status === 'idle' ? 'hidden' : ''
         }`}
       >

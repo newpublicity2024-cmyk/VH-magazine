@@ -1,18 +1,16 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { typoFr } from '@/lib/typo-fr'
 import type { Media } from '@/payload-types'
 
 const asMedia = (v: unknown): Media | null =>
   v && typeof v === 'object' && 'url' in (v as Media) ? (v as Media) : null
 
 /**
- * A full-width editorial promo: image + heading + paragraph + CTA (spec §5.12,
- * §6.7).
- *
- * Amendment A2: these are STACKED full-width sections, not a side-by-side pair.
- * The wireframe drew them paired purely to compact the sketch; the live site
- * stacks them and faithful replication is the goal.
+ * A full-width editorial promo (spec §5.12, §6.7; DESIGN-SPEC-R3 §5.1): a 16:10 image
+ * beside a large title, the paragraph and an accent text link. Stacked full width, never
+ * paired (amendment A2).
  */
 export function DossierStrip({
   title,
@@ -30,36 +28,33 @@ export function DossierStrip({
   const media = asMedia(image)
 
   return (
-    <article className="grid gap-5 border border-rule md:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-      <Link href={linkUrl} className="vh-card-media block aspect-video md:aspect-auto md:h-full">
+    <article className="vh-card grid items-center gap-6 md:grid-cols-2 md:gap-12">
+      <div data-card-media className="vh-card-media aspect-[16/10]">
         {media?.url ? (
           <Image
             src={media.url}
             alt={media.alt || title}
             width={media.width || 1600}
-            height={media.height || 500}
-            sizes="(min-width: 768px) 42vw, 100vw"
+            height={media.height || 1000}
+            sizes="(min-width: 768px) 50vw, 100vw"
             loading="lazy"
+            data-fade
             className="h-full w-full object-cover"
           />
-        ) : (
-          <div className="h-full w-full bg-wash" aria-hidden="true" />
-        )}
-      </Link>
+        ) : null}
+      </div>
 
-      <div className="flex flex-col justify-center p-5 md:pe-8">
-        <h3 className="font-display text-xl font-bold leading-tight text-ink">
-          <Link href={linkUrl} className="transition-colors hover:text-vh-red">
-            {title}
+      <div>
+        <h3 className="type-title-lg text-ink">
+          <Link href={linkUrl} className="vh-card-link">
+            {typoFr(title)}
           </Link>
         </h3>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink-soft/80">{body}</p>
-        <Link
-          href={linkUrl}
-          className="mt-4 self-start border-b-2 border-vh-red pb-0.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink transition-colors hover:text-vh-red"
-        >
+        <p className="type-copy mt-4 text-ink-2">{typoFr(body)}</p>
+        <span className="type-button mt-6 inline-flex items-center gap-2 text-accent">
           {linkLabel || 'Retrouvez ici l’intégralité du dossier'}
-        </Link>
+          <span aria-hidden="true">›</span>
+        </span>
       </div>
     </article>
   )

@@ -1,49 +1,70 @@
-import { FacebookIcon, TwitterIcon } from '@/components/icons'
+'use client'
+
+import { FacebookIcon, LinkIcon, LinkedinIcon, MailIcon, ShareIcon, TwitterIcon, WhatsappIcon } from '@/components/icons'
+import { toast } from '@/components/Toaster'
 
 /**
- * Share links (spec §6.10).
+ * Share row (spec §6.10, DESIGN-SPEC-R3 §4.9): Facebook, X, WhatsApp, LinkedIn, e-mail and
+ * Copy link (with a "Lien copié" toast); on touch devices the native share sheet comes
+ * first. Plain share-endpoint links, not network SDKs — those ship hundreds of KB of
+ * script and set cookies before anyone clicks.
  *
- * Plain anchors to each network's share endpoint rather than their SDKs: the
- * official buttons load hundreds of KB of third-party script and set cookies
- * before anyone clicks, which spec §9's Lighthouse target will not survive.
+ * The native-share button is in the server HTML and shown by a CSS `pointer: coarse`
+ * query, not added after hydration: adding it from JS wrapped the row and shifted the
+ * whole article down 28 px (CLS 0.05 on mobile). Without navigator.share it copies.
  */
 export function ShareButtons({ url, title }: { url: string; title: string }) {
+
   const u = encodeURIComponent(url)
   const t = encodeURIComponent(title)
-
   const links = [
-    { label: 'Partager sur Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${u}`, Icon: FacebookIcon },
-    { label: 'Partager sur X', href: `https://twitter.com/intent/tweet?url=${u}&text=${t}`, Icon: TwitterIcon },
+    { network: 'facebook', label: 'Partager sur Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${u}`, Icon: FacebookIcon },
+    { network: 'x', label: 'Partager sur X', href: `https://twitter.com/intent/tweet?url=${u}&text=${t}`, Icon: TwitterIcon },
+    { network: 'whatsapp', label: 'Partager sur WhatsApp', href: `https://wa.me/?text=${t}%20${u}`, Icon: WhatsappIcon },
+    { network: 'linkedin', label: 'Partager sur LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${u}`, Icon: LinkedinIcon },
+    { network: 'email', label: 'Partager par e-mail', href: `mailto:?subject=${t}&body=${u}`, Icon: MailIcon },
   ]
 
+  const nativeShare = () => {
+    if ('share' in navigator) navigator.share({ title, url }).catch(() => {})
+    else copy()
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      toast('Lien copié')
+    } catch {
+      toast('Copie impossible — sélectionnez l’adresse dans la barre du navigateur')
+    }
+  }
+
   return (
-    <div data-share className="flex items-center gap-3">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-meta">Partager</span>
-      <ul className="flex items-center gap-2">
-        {links.map(({ label, href, Icon }) => (
-          <li key={label}>
+    <div data-share className="flex flex-wrap items-center gap-3">
+      <span className="type-micro hidden text-meta sm:inline">Partager</span>
+      <ul className="flex flex-wrap items-center gap-2">
+        <li className="hidden pointer-coarse:block">
+          <button type="button" aria-label="Partager…" onClick={nativeShare} className="vh-icon-button">
+            <ShareIcon className="h-4 w-4" />
+          </button>
+        </li>
+        {links.map(({ network, label, href, Icon }) => (
+          <li key={network}>
             <a
+              data-share-network={network}
               href={href}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(network === 'email' ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
               aria-label={label}
-              className="flex h-8 w-8 items-center justify-center border border-rule text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white"
+              className="vh-icon-button"
             >
               <Icon className="h-4 w-4" />
             </a>
           </li>
         ))}
         <li>
-          <a
-            href={`mailto:?subject=${t}&body=${u}`}
-            aria-label="Partager par e-mail"
-            className="flex h-8 w-8 items-center justify-center border border-rule text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <path d="M3 7l9 6 9-6" />
-            </svg>
-          </a>
+          <button data-copy-link type="button" aria-label="Copier le lien" onClick={copy} className="vh-icon-button">
+            <LinkIcon className="h-4 w-4" />
+          </button>
         </li>
       </ul>
     </div>

@@ -34,7 +34,7 @@ export function SocialLinks({
               rel="noopener noreferrer"
               // The accessible name lives here, so the icon stays aria-hidden.
               aria-label={`VH Magazine sur ${label}`}
-              className="block transition-colors hover:text-vh-red"
+              className="-m-1 block p-1 transition-colors hover:text-white"
             >
               <Icon className={iconClassName} />
             </Link>

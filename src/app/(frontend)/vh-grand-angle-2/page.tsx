@@ -1,10 +1,10 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
-import { ArticleCard } from '@/components/ArticleCard'
+import { Listing, ListingHeader } from '@/components/Listing'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Pagination } from '@/components/Pagination'
-import { SectionHeader, SectionTitle } from '@/components/SectionHeader'
 import { buildSafe } from '@/lib/build-safe'
 import { getCategoryByPath, getCategoryPage, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, STATIC_ROUTES, categoryUrl, pagedUrl } from '@/lib/routes'
@@ -62,7 +62,7 @@ export default async function GrandAnglePage({ searchParams }: Props) {
   if (page > 1 && result.docs.length === 0) notFound()
 
   return (
-    <div className="vh-container py-6">
+    <div className="vh-container pt-8 lg:pt-12">
       <Breadcrumbs
         items={[
           { label: 'Accueil', href: '/' },
@@ -70,30 +70,21 @@ export default async function GrandAnglePage({ searchParams }: Props) {
         ]}
       />
 
-      <h1 className="sr-only">
-        {TITLE} — les dossiers de VH Magazine
-        {page > 1 ? ` — page ${page}` : ''}
-      </h1>
-
-      {category ? (
-        <SectionHeader title={TITLE} href={categoryUrl(category as never)} moreLabel={null} />
-      ) : (
-        <SectionTitle title={TITLE} />
-      )}
-
-      <p className="mt-4 max-w-3xl text-[14px] leading-relaxed text-ink-soft/80">{DESCRIPTION}</p>
+      <ListingHeader title={TITLE} page={page}>
+        <p className="type-copy mt-4 max-w-[45rem] text-ink-2">{DESCRIPTION}</p>
+        {category ? (
+          <p className="type-copy-sm mt-3">
+            <Link href={categoryUrl(category as never)} className="vh-text-link">
+              Toutes les archives de la catégorie Grand Angle ›
+            </Link>
+          </p>
+        ) : null}
+      </ListingHeader>
 
       {result.docs.length === 0 ? (
-        <p className="mt-8 text-[14px] text-meta">Aucun dossier pour le moment.</p>
+        <p className="type-copy text-ink-2">Aucun dossier pour le moment.</p>
       ) : (
-        <div
-          data-category-grid
-          className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {result.docs.map((article, i) => (
-            <ArticleCard key={article.id} article={article} priority={page === 1 && i === 0} />
-          ))}
-        </div>
+        <Listing articles={result.docs} page={page} />
       )}
 
       <Pagination

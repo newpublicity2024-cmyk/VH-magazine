@@ -23,9 +23,16 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full bg-vh-red px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-vh-red-dark disabled:cursor-not-allowed disabled:opacity-70"
+      className="vh-button-solid type-button w-full"
     >
-      {pending ? 'Please wait...' : 'Je m’inscris'}
+      {pending ? (
+        <>
+          <span aria-hidden="true" className="vh-spinner" />
+          Please wait...
+        </>
+      ) : (
+        'Je m’inscris'
+      )}
     </button>
   )
 }
@@ -34,11 +41,9 @@ export function NewsletterForm({ source = 'homepage-sidebar' }: { source?: strin
   const [state, formAction] = useActionState(subscribeToNewsletter, INITIAL)
 
   return (
-    <form data-newsletter-form action={formAction} className="border border-rule p-4">
-      <h2 className="font-display text-sm font-bold uppercase tracking-[0.08em] text-ink">
-        VH Newsletter
-      </h2>
-      <p className="mt-2 text-[12px] leading-relaxed text-meta">
+    <form data-newsletter-form action={formAction} className="p-6 hairline-box">
+      <h2 className="type-label text-ink">VH Newsletter</h2>
+      <p className="type-copy-sm mt-2 text-ink-2">
         Chaque samedi, recevez l’actu culture, bien-être et lifestyle directement dans votre boite
         mail
       </p>
@@ -55,10 +60,10 @@ export function NewsletterForm({ source = 'homepage-sidebar' }: { source?: strin
         required
         autoComplete="email"
         placeholder="Votre adresse e-mail"
-        className="mt-3 w-full border border-rule px-3 py-2.5 text-[13px] outline-none focus:border-ink"
+        className="vh-input type-copy mt-4"
       />
 
-      <div className="mt-2.5">
+      <div className="mt-3">
         <SubmitButton />
       </div>
 
@@ -68,9 +73,9 @@ export function NewsletterForm({ source = 'homepage-sidebar' }: { source?: strin
         data-newsletter-status
         role="status"
         aria-live="polite"
-        className={`mt-2.5 text-[12px] ${
-          state.status === 'error' ? 'text-vh-red' : 'text-ink'
-        } ${state.status === 'idle' ? 'hidden' : ''}`}
+        className={`type-copy-sm mt-3 text-ink ${state.status === 'error' ? 'font-semibold' : ''} ${
+          state.status === 'idle' ? 'hidden' : ''
+        }`}
       >
         {state.message}
       </p>

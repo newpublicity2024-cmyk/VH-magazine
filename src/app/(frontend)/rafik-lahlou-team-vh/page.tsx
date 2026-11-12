@@ -14,11 +14,11 @@ export const metadata: Metadata = buildMetadata({
 
 export default function TeamPage() {
   return (
-    <div className="vh-container py-6">
+    <div className="vh-container pt-8 lg:pt-12">
       <Breadcrumbs items={[{ label: 'Accueil', href: '/' }, { label: 'Team VH', href: STATIC_ROUTES.teamVh }]} />
-      <div className="mx-auto max-w-3xl">
-        <h1 className="font-display text-3xl font-bold text-ink">Team VH</h1>
-        <div className="vh-prose mt-6">
+      <div className="mx-auto max-w-[45rem]">
+        <h1 className="type-h1-page text-ink">Team VH</h1>
+        <div className="vh-prose mt-8">
           <p>
             VH Magazine est né en 2002 de l’envie de raconter le Maroc au masculin : l’art de vivre,
             le lifestyle, la mode, les moteurs et les gens qui font bouger le pays.
