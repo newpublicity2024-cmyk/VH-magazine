@@ -1,8 +1,26 @@
 # VH Magazine — Round 3: design finish ("VH clarity, Challenge finish")
 
-Status: **draft for owner approval** · 2026-11-12 · Scope: the public front end only.
-No code has changed for this round. Implementation starts in a new session, on its own
-branch, after the decisions in §11 are answered.
+Status: **approved with amendments C1–C4 (below)** · 2026-11-12 · Scope: the public front
+end only. Built on branch `design/round-3` (from `migration/media-import`, which carries
+the vendored fonts `main` cannot build without).
+
+### Amendments (2026-11-12, after the spec was written)
+
+- **C1 — the accent is VH blue, not red.** The spec inherited "VH signature red ~#e31e24"
+  from `vh-magazine-website-spec.md` §3, which asked for it to be verified; it never was.
+  Measured on vh.ma: the theme accent is `--pcaccent-cl: #026bb3`, the 2024 logo
+  (`cropped-logo-vh-magazine-2024-1.png`) is `#166fc1`, `logo.jpeg` is white on blue, and
+  `#e31e24` occurs nowhere on the site (every red there is a third-party icon colour).
+  **Owner decision: `accent = #166fc1`, the logo's blue.** Wherever this spec says *red*,
+  *VH red* or `vh-red`, read `accent`; the token table in §3.1 is corrected. A brand
+  guide, if one turns up, overrides the value (one token).
+- **C2 — D1–D8 accepted as recommended** (§11 records the answers).
+- **C3 — logo SVGs pending from VH.** The placeholder stays (fixed so it no longer clips)
+  and R3-G3 stays visibly unmet until the real files arrive; everything else proceeds.
+- **C4 — contrast found while deriving C1:** `meta #757575` on `canvas-2 #f5f5f7` is
+  4.23:1 (fails AA). Secondary text on a `canvas-2` surface uses `ink-2`, never `meta`.
+  Accent text never sits on black at small sizes (4.08:1): on black it is
+  `accent-on-dark`.
 
 Audience: the owner (decisions in §11, assets in §12) and the session that builds it
 (everything else). Read §0–§2 first, then work §9 in order.
@@ -121,11 +139,12 @@ these compile.
 | `hairline` | `#d2d2d7` | dividers between rows, input borders on focus | — |
 | `night-2` | `#1c1c1e` | surfaces on black bands (cards, inputs, menus on dark) | — |
 | `night-ink` / `night-ink-2` | `#f5f5f7` / `#a1a1a6` | text on black | 8.2:1 for `-2` on black ✓ |
-| `vh-red` | `#e31e24` **(verify, §12)** | kickers, active states, newsletter CTA, hover accent | 4.69:1 ✓ (white on red 4.69:1 ✓) |
-| `vh-red-600` | `#c4161c` | hover / pressed red | — |
-| `vh-red-50` | `#fdecec` | text selection tint, focus halo tint | — |
+| `accent` | `#166fc1` (C1: logo blue) | kickers, active states, newsletter CTA, hover accent, focus ring | 5.15:1 ✓ (white on accent 5.15:1 ✓; on black 4.08:1 — non-text only) |
+| `accent-600` | `#135ea4` | hover / pressed accent | white on it 6.64:1 ✓ |
+| `accent-50` | `#e8f1f9` | text selection tint, focus halo tint | — |
+| `accent-on-dark` | `#5c9ad4` | accent text on black bands and dark sections | 7.03:1 on black ✓, 5.69:1 on `night-2` ✓ |
 
-Selection: `::selection { background: rgb(227 30 36 / .18); }`.
+Selection: `::selection { background: rgb(22 111 193 / .18); }`.
 The current `ink #000`, `ink-soft #111`, `wash #f5f5f5`, `rule #e5e5e5`, `surface` map to
 `band`, `ink`, `canvas-2`, `hairline`, `canvas` — rename in one pass (§9 step 1).
 
@@ -451,26 +470,37 @@ existing harness (`withServer`, `withPage`, fresh ports, `stripScripts`).
 | R3-G10 | Performance budget kept | Lighthouse mobile perf ≥ 90 on home/article/category; first-party JS growth ≤ 15 KB gz vs the recorded pre-R3 baseline |
 | R3-G11 | Accessibility kept | axe: 0 serious/critical on home, article, category, search, 404 at 1440 and 390 (extends G16) |
 | R3-G12 | Owner approves the look (**manual**) | Screenshots at 1440 and 390 of home, article, category, VH TV, search panel open, drawer open, 404; the owner's written approval (this is the long-pending D4 punch list) |
+| R3-G13 | The decisions render as decided (C1, D1, D2, D4–D8) | Accent computes `#166fc1` and no red token remains; black masthead; image corners 0 and floating panels 12 px; no View Transitions; Vidéos and People on black; titles below images; logo centred in the masthead and left in the compact bar; rank numerals 1–5 in "Les plus lus" |
+| R3-G14 | Live search works (D3) | `/api/search` returns ≤ 6 hits for a seeded term, nothing under 2 characters, survives an injection payload; typing in the panel shows the results and a "Voir tous les résultats" link to `/recherche/?q=` |
+| R3-G15 | French typesetting is applied and safe | `typoFr` is idempotent and never leaves a space beside a narrow no-break space across every migrated title in `vh_migration`; a rendered title shows U+202F before `?` / `:`; URLs and times untouched |
+| R3-G16 | A designed 404 | Status 404, h1 "Page introuvable", a search field and the 6 latest articles |
+| R3-G17 | The rest of the spec inventory is present | Reading progress bar and "min de lecture" on articles; share row with WhatsApp, LinkedIn and Copy link (toast `role=status`); listings open with a `lead` card then `horizontal` rows; VH TV featured player swaps in place; magazine covers grouped by year; footer accordions at 390; back-to-top only after 600 px; a print stylesheet |
 
 Plus: G1–G42 re-run green on the round-3 build (standing harness policy: reset evidence first).
 
 ## 11. Decisions for the owner
 
-| # | Question | Recommendation |
-|---|---|---|
-| D1 | Masthead: **black band like the live site** or keep the rebuild's white header? | Black — it is the most recognisable piece of VH |
-| D2 | Corners: **A Crisp** (square images, rounded only floating UI) or **B Soft** (Challenge-like rounded images)? | A — VH is a crisp, print-like magazine |
-| D3 | Search: **live results as you type** (small new API) or submit-only? | Live results — the biggest "premium" gain for little code |
-| D4 | Page transitions (View Transitions cross-fade between pages)? | Not in round 3 — still experimental in Next 16; revisit later |
-| D5 | VIDÉOS and PEOPLE on **black bands** as on the live site? | Yes |
-| D6 | Titles on **white plates over images** (live top block) or **below images** everywhere? | Below everywhere — clearer, and consistent |
-| D7 | Logo position in the masthead: centred (live) or left (rebuild)? | Centred on the black masthead, left in the compact bar |
-| D8 | "Les plus lus" with **rank numerals**? | Yes — note view counts are 0 until the WordPress counts are migrated |
+Answered 2026-11-12: **every recommendation accepted** (amendment C2). Proved by R3-G13
+(D1, D2, D4–D8 as rendered) and R3-G14 (D3).
+
+| # | Question | Recommendation | Decision |
+|---|---|---|---|
+| D1 | Masthead: **black band like the live site** or keep the rebuild's white header? | Black — it is the most recognisable piece of VH | Black |
+| D2 | Corners: **A Crisp** (square images, rounded only floating UI) or **B Soft** (Challenge-like rounded images)? | A — VH is a crisp, print-like magazine | A — Crisp |
+| D3 | Search: **live results as you type** (small new API) or submit-only? | Live results — the biggest "premium" gain for little code | Live results |
+| D4 | Page transitions (View Transitions cross-fade between pages)? | Not in round 3 — still experimental in Next 16; revisit later | Not in round 3 |
+| D5 | VIDÉOS and PEOPLE on **black bands** as on the live site? | Yes | Yes |
+| D6 | Titles on **white plates over images** (live top block) or **below images** everywhere? | Below everywhere — clearer, and consistent | Below everywhere |
+| D7 | Logo position in the masthead: centred (live) or left (rebuild)? | Centred on the black masthead, left in the compact bar | Centred; left in compact bar |
+| D8 | "Les plus lus" with **rank numerals**? | Yes — note view counts are 0 until the WordPress counts are migrated | Yes |
 
 ## 12. Assets needed from VH
 
-- Official logo SVGs: black-on-white, white-on-black, and the compact "VH" mark.
-- The exact brand red (from the logo file or the brand guide) to replace `#e31e24`.
+- **Still needed:** official logo SVGs — blue-on-white, white-on-black, and the compact
+  "VH" mark. None exist in the repo, the FTP mirror or on vh.ma (which serves only
+  `logo-blanc.png` 134×100 and `cropped-logo-vh-magazine-2024-1.png` 210×150).
+- ~~The exact brand red~~ — resolved by C1: the brand colour is blue `#166fc1` (sampled
+  from the 2024 logo PNG). A brand-guide value, if VH has one, replaces it.
 - Optional: favicon / app icon set from the same source.
 
 ## 13. Out of scope — do not change

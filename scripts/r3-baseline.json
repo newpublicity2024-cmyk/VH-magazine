@@ -1,0 +1,14 @@
+{
+  "note": "Pre-round-3 build. Recorded by verify-r3-perf.mjs --record-baseline; do not edit.",
+  "sha": "3ab214beead2e0f1cc39b21253977334bfab7dbb",
+  "measuredAt": "2026-11-12T10:09:02.235Z",
+  "js": {
+    "home": 160177,
+    "article": 161288
+  },
+  "lighthouse": {
+    "home": 98,
+    "article": 98,
+    "category": 99
+  }
+}
