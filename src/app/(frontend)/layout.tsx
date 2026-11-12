@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Archivo, Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import React from 'react'
 
 import './styles.css'
@@ -16,17 +16,21 @@ import { SITE_URL, ogImageUrl } from '@/lib/seo'
  * Self-hosted via next/font (spec §9): subsetted, preloaded, `display: swap`,
  * and no render-blocking request to a font CDN. Latin only — the site is
  * French, so shipping other subsets would be dead weight.
+ *
+ * The files are vendored (src/fonts, with their OFL licences) rather than fetched by
+ * next/font/google at build time: since 2026-11-11 Google answers Turbopack's font
+ * request with `&`-bearing URLs Turbopack cannot resolve, which broke the build and had
+ * already shipped Archivo as a dead URL. Both are variable fonts covering the weights
+ * the site uses; next/font/local still generates the size-adjusted Arial fallback.
  */
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const inter = localFont({
+  src: [{ path: '../../fonts/inter-latin.woff2', weight: '400 700', style: 'normal' }],
   display: 'swap',
   variable: '--font-inter',
 })
 
-const archivo = Archivo({
-  subsets: ['latin'],
-  weight: ['600', '700'],
+const archivo = localFont({
+  src: [{ path: '../../fonts/archivo-latin.woff2', weight: '600 700', style: 'normal' }],
   display: 'swap',
   variable: '--font-archivo',
 })
