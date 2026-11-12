@@ -1,4 +1,4 @@
-import { getPayloadClient } from '@/lib/payload'
+import { query } from '@/lib/db'
 
 /**
  * The irregular-redirect map, consumed by middleware.
@@ -23,21 +23,19 @@ import { getPayloadClient } from '@/lib/payload'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const payload = await getPayloadClient()
-  const result = await payload.find({
-    collection: 'redirects',
-    limit: 5000,
-    depth: 0,
-    select: { from: true, to: true, permanent: true },
-  })
-
+  // Filtered in SQL, never fetch-then-filter: at migration scale the table holds ~36k rows
+  // (8k `/?p=` + 28k `/tag/`), so a capped fetch would silently cut one-off redirects and
+  // inline `?p=` rows that can never match — middleware keys this map by pathname, and a
+  // `?p=` lives in the query string (it is served by /api/redirect-lookup).
+  const rows = await query<{ from: string; to: string; permanent: boolean | null }>(
+    `select "from", "to", permanent from redirects
+      where "from" not like '/tag/%' and "from" not like '/?p=%'`,
+  )
   const map: Record<string, { to: string; permanent: boolean }> = {}
-  for (const row of result.docs as Array<{ from?: string; to?: string; permanent?: boolean }>) {
-    // Tag redirects are served by lookup, never inlined (B5).
-    if (!row.from || !row.to || row.from.startsWith('/tag/')) continue
+  for (const row of rows) {
+    if (!row.from || !row.to) continue
     map[row.from] = { to: row.to, permanent: row.permanent !== false }
   }
-
   return Response.json(map, {
     headers: { 'cache-control': 'public, s-maxage=300, stale-while-revalidate=600' },
   })
