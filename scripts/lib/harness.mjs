@@ -226,6 +226,19 @@ export async function withServer(fn) {
     }
   }
 
+  // fail() and ok() end the process with process.exit, which skips the finally below.
+  // Without this, every failing gate left its `next start` running (seven had piled up by
+  // 2026-11-11, each holding memory and database connections). 'exit' listeners run
+  // synchronously, and process.kill is synchronous, so the group dies with us.
+  const killOnExit = () => {
+    try {
+      process.kill(-child.pid, 'SIGKILL')
+    } catch {
+      /* group already gone */
+    }
+  }
+  process.on('exit', killOnExit)
+
   try {
     await waitForReady(baseUrl, child)
     return await fn(baseUrl)
@@ -237,6 +250,7 @@ export async function withServer(fn) {
     }
     throw error
   } finally {
+    process.off('exit', killOnExit)
     await kill()
   }
 }
