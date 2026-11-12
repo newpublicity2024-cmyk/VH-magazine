@@ -17,7 +17,7 @@ const ROLES = {
   home: {
     date: ['time[data-date]', 20],
     'band label': ['.vh-band h2, .vh-band a', 3],
-    'dark-section title': ['[data-tone="dark"] [data-card-title]', 8],
+    'dark-section title': ['[data-tone="dark"] [data-headline]', 8],
     'dark-section date': ['[data-tone="dark"] time[data-date]', 8],
     button: ['[data-button]', 3],
     'footer link': ['[data-section="footer"] a', 10],

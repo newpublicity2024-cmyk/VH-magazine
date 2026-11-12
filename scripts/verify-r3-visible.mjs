@@ -29,8 +29,8 @@ function audit() {
     return null
   }
   return [...document.querySelectorAll('[data-card]')].map((card) => ({
-    label: (card.querySelector('[data-card-title]')?.textContent || '').trim().slice(0, 40),
-    title: shown(card.querySelector('[data-card-title]')),
+    label: (card.querySelector('[data-headline]')?.textContent || '').trim().slice(0, 40),
+    title: shown(card.querySelector('[data-headline]')),
     date: shown(card.querySelector('time[data-date]')),
   }))
 }

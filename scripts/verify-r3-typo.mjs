@@ -77,7 +77,7 @@ await withBrowser(async ({ page, baseUrl, pageErrors }) => {
   const p = await page({ width: 1440, height: 900 })
   await p.goto(`${baseUrl}${target.listing}`, { waitUntil: 'load', timeout: 60_000 })
   const card = await p.evaluate(() => {
-    const t = [...document.querySelectorAll('[data-card-title]')].find((el) => el.textContent.includes('Starlink'))
+    const t = [...document.querySelectorAll('[data-headline]')].find((el) => el.textContent.includes('Starlink'))
     return t ? t.textContent : null
   })
   assert(card, `the Starlink card is not on its category page ${target.listing}`)

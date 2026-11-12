@@ -19,9 +19,9 @@ async function hoverState(p) {
   await card.hover()
   await p.waitForTimeout(800)
   return card.evaluate((el) => {
-    const img = el.querySelector('[data-card-media] img')
-    const link = el.querySelector('[data-card-title] a')
-    const title = el.querySelector('[data-card-title]')
+    const img = el.querySelector('[data-media] img')
+    const link = el.querySelector('[data-headline] a')
+    const title = el.querySelector('[data-headline]')
     const ics = getComputedStyle(img)
     const props = ics.transitionProperty.split(',').map((s) => s.trim())
     const durs = ics.transitionDuration.split(',').map((s) => s.trim())

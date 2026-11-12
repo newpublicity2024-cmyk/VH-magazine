@@ -100,7 +100,7 @@ export function ArticleCard({
     ) : null
 
   const titleEl = (cls: string) => (
-    <h3 data-card-title className={`${cls} ${titleColor}`}>
+    <h3 data-headline className={`${cls} ${titleColor}`}>
       <Link href={href} className="vh-card-link">
         {title}
       </Link>
@@ -128,7 +128,7 @@ export function ArticleCard({
           {titleEl('type-title-sm vh-clamp-3')}
           {dateEl('mt-1')}
         </div>
-        <div data-card-media className="vh-card-media size-18 shrink-0">
+        <div data-media className="vh-card-media size-18 shrink-0">
           {media}
         </div>
       </article>
@@ -140,7 +140,7 @@ export function ArticleCard({
     return (
       <article data-card data-variant="horizontal" className={`vh-card flex ${lg ? 'gap-4 sm:gap-6' : 'gap-3'}`}>
         <div
-          data-card-media
+          data-media
           className={`vh-card-media shrink-0 ${lg ? 'aspect-[4/3] w-28 sm:w-60' : 'size-22'}`}
         >
           {media}
@@ -167,7 +167,7 @@ export function ArticleCard({
 
   return (
     <article data-card data-variant={variant} className="vh-card flex flex-col">
-      <div data-card-media className={`vh-card-media ${aspect}`}>
+      <div data-media className={`vh-card-media ${aspect}`}>
         {media}
         {variant === 'video' ? (
           <span aria-hidden="true" className="vh-play">

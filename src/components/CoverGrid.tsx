@@ -21,7 +21,7 @@ export function CoverGrid({ issues, columns = 4 }: { issues: MagazineIssue[]; co
         const cover = asMedia(issue.cover)
         return (
           <article data-card data-variant="cover" key={issue.id} className="vh-card vh-cover-card flex flex-col">
-            <div data-card-media className="vh-card-media vh-cover aspect-[3/4]">
+            <div data-media className="vh-card-media vh-cover aspect-[3/4]">
               {cover?.url ? (
                 <Image
                   src={cover.url}
@@ -36,7 +36,7 @@ export function CoverGrid({ issues, columns = 4 }: { issues: MagazineIssue[]; co
               ) : null}
             </div>
             <div className="pt-4">
-              <h3 data-card-title className="type-title-sm vh-clamp-3 text-ink">
+              <h3 data-headline className="type-title-sm vh-clamp-3 text-ink">
                 <Link href={issueUrl(issue)} className="vh-card-link">
                   {typoFr(issue.title)}
                 </Link>

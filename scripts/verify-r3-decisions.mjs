@@ -49,12 +49,12 @@ await withBrowser(async ({ page, baseUrl, pageErrors }) => {
     }
     const cards = [...document.querySelectorAll('[data-section] [data-card]:not([data-variant="horizontal"]):not([data-variant="rank"])')]
     const below = cards.map((c) => {
-      const media = c.querySelector('[data-card-media]')
-      const title = c.querySelector('[data-card-title]')
+      const media = c.querySelector('[data-media]')
+      const title = c.querySelector('[data-headline]')
       if (!media || !title) return { ok: false, why: 'missing media or title', t: c.textContent.trim().slice(0, 30) }
       return { ok: title.getBoundingClientRect().top >= media.getBoundingClientRect().bottom - 0.5, t: title.textContent.trim().slice(0, 30) }
     })
-    const radii = [...document.querySelectorAll('[data-card-media]')].map((m) => getComputedStyle(m).borderTopLeftRadius)
+    const radii = [...document.querySelectorAll('[data-media]')].map((m) => getComputedStyle(m).borderTopLeftRadius)
     const logo = document.querySelector('[data-logo="masthead"]')
     const lr = logo?.getBoundingClientRect()
     const mark = document.querySelector('[data-compact-mark]')

@@ -29,7 +29,7 @@ export function DossierStrip({
 
   return (
     <article className="vh-card grid items-center gap-6 md:grid-cols-2 md:gap-12">
-      <div data-card-media className="vh-card-media aspect-[16/10]">
+      <div data-media className="vh-card-media aspect-[16/10]">
         {media?.url ? (
           <Image
             src={media.url}

@@ -105,7 +105,7 @@ export function VhTvPlayer({ videos }: { videos: TvVideo[] }) {
               </span>
             </button>
             <div className="pt-3">
-              <h3 data-card-title className="type-title vh-clamp-3 text-night-ink">
+              <h3 data-headline className="type-title vh-clamp-3 text-night-ink">
                 <Link href={x.href} className="vh-hover-line">
                   {x.title}
                 </Link>
