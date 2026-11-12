@@ -18,10 +18,14 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   ledgers `GATES-P*.md`; read that PLAN first. Code lives on branch
   `migration/media-import` (not pushed). P1–P4 done: 31,131 media originals in
   Blob + the local `vh_migration` DB, and `/api/legacy-media` resolves every
-  legacy upload URL. P5 (8,170 articles) is blocked on Hostinger Remote MySQL
-  allowlisting this Mac's public IP.
-- `GATES.md` = G1–G41. G40–G41 (2026-11-11) cover two nav links G12 checked by
-  text but never requested — Grand Angle and KIT MEDIA both 404'd.
+  legacy upload URL. P5 runs over the live site's **public REST API** (Remote
+  MySQL stays closed — the Mac's IP rotates daily): 8,121 of 8,128 articles,
+  130 categories, 27,946 tags and 36,177 redirects are in `vh_migration`
+  (`src/migrate/import-articles.ts`); 7 wait for P6, the 202 magazine-issue
+  posts wait on an owner decision. Nothing is in Neon yet.
+- `GATES.md` = G1–G42. G40–G41 (2026-11-11) cover two nav links G12 checked by
+  text but never requested — Grand Angle and KIT MEDIA both 404'd. G42 opens an
+  article in the admin (the editor had never rendered — see Landmines).
 - Still open from round 1: the D4 visual punch list never arrived.
 
 ## Standing harness policy
@@ -68,6 +72,23 @@ reported something other than what it measured.
 - **`next/link` prefetches internal hrefs.** An internal link to a file (the
   KIT MEDIA PDF) must carry `prefetch={false}`, or every desktop page view
   downloads it.
+- **Fonts are vendored (`src/fonts`, `next/font/local`), never `next/font/google`.** Since
+  2026-11-11 Google answers plain HTTP/1.1 font requests with `/l/font?kit=…&skey=…` URLs;
+  Turbopack's font fetch makes exactly that request and cannot carry a `&` in its font-file
+  query ("next/font/google queries have exactly one entry") — builds fail, and one build
+  shipped Archivo as a dead internal URL without failing. Check shipped CSS, not exit codes.
+- **Regenerate the admin import map after any editor or admin-component change**
+  (`pnpm generate:importmap`). It was committed as `{}`, so the Articles body
+  editor never rendered (`getFromImportMap: PayloadComponent not found`) and no
+  gate noticed; G42 now opens an article in a browser.
+- **Harness `fail()`/`ok()` call `process.exit`**, which skips `finally`. `withServer`
+  now kills its server from an `exit` listener; before that every failing gate left a
+  `next start` running. Inside a browser callback, throw rather than `assert`, so
+  chromium closes too.
+- **Filter redirects in SQL, never fetch-then-filter.** At migration scale the
+  table holds ~36k rows; the map route's old `limit: 5000` + filter would have cut
+  one-off redirects at random and inlined 8k `?p=` rows (query strings never match
+  the map's pathname keys).
 - **Vercel Blob serves HTML as `Content-Disposition: attachment`.** The legacy
   newsletters are proxied inline under a `sandbox` CSP instead of redirected.
 
@@ -97,6 +118,12 @@ reported something other than what it measured.
   except when that origin is this site (post-cutover loop guard) → 404.
   Non-media paths always 404. Nav links to old uploads keep the live URL
   (`STATIC_ROUTES.kitMedia`).
+
+- **Migrated article bodies** are Lexical built from WordPress HTML in the migration
+  workspace (`tools/wp-lexical.mjs`); in-text YouTube is the `videoEmbed` block
+  (`blocks/VideoEmbed.ts`, URL rule shared with the facade via `lib/youtube.ts`), and
+  video/audio uploads play natively in `RichTextBody`. An empty body is stored as none —
+  Lexical rejects an empty root.
 
 ## Approved deviations from the spec
 
