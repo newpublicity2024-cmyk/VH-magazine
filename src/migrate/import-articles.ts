@@ -26,6 +26,12 @@ import { candidatePaths } from '../lib/legacy-media'
  *   3. Media alt ← WordPress alt text      7. manifests/wprest/import-articles.jsonl (wpId → id, url)
  *   4. articles (published)
  *
+ * A re-run creates only what is missing, and converges what exists on the conversion: an
+ * existing article whose publication date differs is updated through Payload (so the latest
+ * version, which the admin editor opens, changes too — e.g. post 47196, which WordPress dates
+ * 1970-01-01 and the converter dates by its modified date). Existing bodies are walked again
+ * so the dropped-uploads list is the same on every run.
+ *
  * Magazine issues (posts of the `sommaire` rubric) are NOT imported: 202 posts carry 150
  * distinct issue numbers and MagazineIssues.number is unique — an owner decision.
  *
@@ -237,16 +243,18 @@ async function main() {
 
   // 4. Articles.
   const existingArticles = new Map(
-    (await query<{ id: number; slug: string }>('select id, slug from articles')).map((r) => [
-      r.slug,
-      r.id,
-    ]),
+    (
+      await query<{ id: number; slug: string; published_at: Date | string | null }>(
+        'select id, slug, published_at from articles',
+      )
+    ).map((r) => [r.slug, { id: r.id, publishedAt: r.published_at }]),
   )
   const mapFile = W('import-articles.jsonl')
   const map: { wpId: number; id: number; url: string }[] = []
   let created = 0
   let droppedUploads = 0
   let deferred = 0
+  const redated: string[] = []
   const bodyWithIds = (root: LexNode, wpId: number): LexNode => {
     const walk = (n: LexNode): LexNode | null => {
       if (n.type === 'upload') {
@@ -270,8 +278,26 @@ async function main() {
   await pool(articles, concurrency, async (r) => {
     const url = `/${r.categoryPath}/${r.slug}/`
     const have = existingArticles.get(r.slug)
+    const source = 'root' in r.body ? (r.body as { root: LexNode }).root : (r.body as LexNode)
     if (have) {
-      map.push({ wpId: r.wpId, id: have, url })
+      map.push({ wpId: r.wpId, id: have.id, url })
+      // The same walk as a first import, for the dropped-uploads list; the body itself stays.
+      bodyWithIds(source, r.wpId)
+      const stored = have.publishedAt === null ? NaN : new Date(have.publishedAt).getTime()
+      if (stored !== new Date(r.publishedAt).getTime()) {
+        try {
+          await payload.update({
+            collection: 'articles',
+            id: have.id,
+            data: { publishedAt: r.publishedAt },
+            context: ctx,
+            overrideAccess: true,
+          })
+          redated.push(`${r.slug}: ${new Date(stored).toISOString()} → ${r.publishedAt}`)
+        } catch (e) {
+          fail({ step: 'article date', wpId: r.wpId, slug: r.slug, error: (e as Error).message })
+        }
+      }
       return
     }
     const featuredImage = r.featured ? resolveMedia(r.featured) : null
@@ -285,7 +311,6 @@ async function main() {
       record(deferredFile, { wpId: r.wpId, slug: r.slug, featured: r.featured })
       return
     }
-    const source = 'root' in r.body ? (r.body as { root: LexNode }).root : (r.body as LexNode)
     // Checked after the substitution: a body of nothing but unresolvable images ends empty.
     const root = bodyWithIds(source, r.wpId)
     try {
@@ -330,8 +355,9 @@ async function main() {
       .join('\n') + '\n',
   )
   console.log(
-    `articles: ${created} created, ${map.length} mapped, ${deferred} deferred to P6, ${droppedUploads} unresolvable body uploads dropped`,
+    `articles: ${created} created, ${map.length} mapped, ${redated.length} publication dates updated, ${deferred} deferred to P6, ${droppedUploads} unresolvable body uploads dropped`,
   )
+  for (const line of redated) console.log(`  redated ${line}`)
 
   // 5. Redirects: /?p=<wpId> for every imported article, /tag/<slug>/ for every tag.
   const existingFrom = new Set(
