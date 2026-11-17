@@ -62,6 +62,96 @@ export function ok(token) {
   process.stdout.write(`${token}\n`, () => process.exit(0))
 }
 
+/**
+ * Thrown by check() / checkEqual(). assert() exits on the spot, which skips every
+ * `finally` — so a gate that had written to the database left its rows behind whenever
+ * an assertion failed (G35's stray article sat in "Derniers articles"). A GateFailure
+ * unwinds instead: through withServer, which kills its server on the way, and into
+ * withCleanup, which cleans up before reporting.
+ */
+export class GateFailure extends Error {}
+
+export function check(condition, message) {
+  if (!condition) throw new GateFailure(message)
+}
+
+export function checkEqual(actual, expected, what) {
+  if (actual !== expected) {
+    throw new GateFailure(
+      `${what} — expected ${JSON.stringify(expected)}, measured ${JSON.stringify(actual)}`,
+    )
+  }
+}
+
+/**
+ * G43's switch: GATE_INJECT_FAILURE=<stage> makes a database-writing gate fail at that
+ * stage, so G43 can prove the cleanup runs on the failure path too.
+ */
+export function injectedFailure(stage) {
+  if (process.env.GATE_INJECT_FAILURE === stage) {
+    throw new GateFailure(`injected failure at "${stage}" (GATE_INJECT_FAILURE)`)
+  }
+}
+
+/**
+ * Run `body`, then ALWAYS `cleanup` — after success, a failed check, or any thrown error —
+ * and only then report a failure. Inside `body`, use check()/checkEqual(), never assert().
+ *
+ * Not covered: a fail() deeper down (withServer's readiness probe) still exits at once.
+ * Every writer therefore also sweeps its own stale rows when it starts, and G44 measures
+ * the database for anything left in between.
+ */
+export async function withCleanup(body, cleanup) {
+  let error = null
+  try {
+    await body()
+  } catch (e) {
+    error = e
+  }
+  let cleanupError = null
+  try {
+    await cleanup()
+  } catch (e) {
+    cleanupError = e
+  }
+  const text = (e) => (e instanceof GateFailure ? e.message : (e?.stack ?? String(e)))
+  if (error) fail(text(error))
+  if (cleanupError) fail(`cleanup failed: ${text(cleanupError)}`)
+}
+
+/**
+ * Delete a writer gate's throwaway articles, their versions and their redirects.
+ *
+ * Versions go FIRST. `_articles_v.parent_id` is ON DELETE SET NULL: deleting the article
+ * first strands its versions with a null parent, where `delete … where parent_id = $1`
+ * no longer finds them — 97 had piled up in vh_magazine by 2026-11-17.
+ *
+ * `slug` and `path` are anchored POSIX regexes (`~`) naming the gate's own stamped slugs
+ * and redirect paths, so no real article can match. Returns the rows deleted per table
+ * and the rows still matching afterwards.
+ */
+export async function deleteGateRows(client, { slug, path }) {
+  const deleted = {}
+  deleted.versions = (
+    await client.query(
+      `delete from _articles_v
+        where version_slug ~ $1 or parent_id in (select id from articles where slug ~ $1)`,
+      [slug],
+    )
+  ).rowCount
+  deleted.articles = (await client.query('delete from articles where slug ~ $1', [slug])).rowCount
+  deleted.redirects = (
+    await client.query('delete from redirects where "from" ~ $1 or "to" ~ $1', [path])
+  ).rowCount
+  const { rows } = await client.query(
+    `select (select count(*) from articles where slug ~ $1)::int as articles,
+            (select count(*) from _articles_v where version_slug ~ $1)::int as versions,
+            (select count(*) from redirects where "from" ~ $2 or "to" ~ $2)::int as redirects`,
+    [slug, path],
+  )
+  return { deleted, left: rows[0] }
+}
+
 /** A pg client bound to DATABASE_URL from .env. Caller must `await client.end()`. */
 export async function pgClient() {
   const { default: pg } = await import('pg')
