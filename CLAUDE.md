@@ -44,6 +44,13 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   `vh-mark-white.svg` are fixed-but-placeholder). C5 (no global smooth scroll) is a
   deviation of mine the owner was never shown explicitly.
   `scripts/r3-baseline.json` is the pre-R3 perf baseline (commit 3ab214b) — never re-record.
+- **Launch engineering (2026-11-17, same branch)** — the LAUNCH.md items that need no
+  go-ahead: step 5 (direct Blob media URLs, optimizer limited to the store) and step 7
+  (`src/proxy.ts`, the 29 WordPress pages decided in `src/migrate/wp-pages.ts`), plus the
+  admin import map regenerated with the Blob adapter on and JSON-LD file URLs fixed. Ledger
+  `GATES-LAUNCH.md`: 7/7 runnable met (7 RUN lines), **L4 abandoned** (404 body — needs
+  `cacheComponents`; handoff). `GATES.md` re-run from reset on that build: 61 RUN lines for 61
+  runnable gates, 60 met — R3-G3 (logos) the only failure — so 61/62 with R3-G12.
 
 ## Standing harness policy
 
@@ -94,10 +101,15 @@ reported something other than what it measured.
   Turbopack's font fetch makes exactly that request and cannot carry a `&` in its font-file
   query ("next/font/google queries have exactly one entry") — builds fail, and one build
   shipped Archivo as a dead internal URL without failing. Check shipped CSS, not exit codes.
-- **Regenerate the admin import map after any editor or admin-component change**
-  (`pnpm generate:importmap`). It was committed as `{}`, so the Articles body
-  editor never rendered (`getFromImportMap: PayloadComponent not found`) and no
-  gate noticed; G42 now opens an article in a browser.
+- **Regenerate the admin import map after any editor or admin-component change — with the
+  Blob adapter ON.** It was committed as `{}`, so the Articles body editor never rendered
+  (`getFromImportMap: PayloadComponent not found`) and no gate noticed; G42 now opens an
+  article in a browser. The adapter registers only when `BLOB_READ_WRITE_TOKEN` is set, so a
+  map generated on this Mac silently dropped its `VercelBlobClientUploadHandler` (found
+  2026-11-17). Generate with a powerless token naming the public store:
+  `BLOB_READ_WRITE_TOKEN=vercel_blob_rw_<storeid>_000000000000000000000000000000 pnpm generate:importmap`
+  (`<storeid>` is the host prefix of any Blob URL). GATES-LAUNCH L2 compares the committed map
+  with that output.
 - **Harness `fail()`/`ok()` call `process.exit`**, which skips `finally`. `withServer`
   now kills its server from an `exit` listener; before that every failing gate left a
   `next start` running. Inside a browser callback, throw rather than `assert`, so
@@ -119,7 +131,30 @@ reported something other than what it measured.
   wrapped the share row: CLS 0.05 on mobile articles. Decide with CSS media queries
   (`pointer-coarse:`); R3-G10 now asserts Lighthouse CLS ≤ 0.02.
 - **A `notFound()` response has no server-rendered body** — not even the layout; React draws
-  it from the flight payload (two root layouts; pre-dates round 3). Test 404s in a browser.
+  it from the flight payload. Test 404s in a browser. Cause (Next 16.2.6 source, measured
+  2026-11-17): app-render answers a page-thrown `notFound()` with `getErrorRSCPayload`, the
+  `<html id="__next_error__">` shell, and server-renders a segment's not-found only under
+  `cacheComponents`. Not the two root layouts: `app/global-not-found.tsx` +
+  `experimental.globalNotFound` was built and measured — it serves only URLs no route
+  matches, and the root catch-all `[...path]` matches every URL. Abandoned as GATES-LAUNCH L4.
+- **`absoluteUrl()` is for pages, `absoluteFileUrl()` for files** (`lib/seo.ts`). The page
+  helper appends the trailing slash, and Next 308s `/vh-logo.svg/` → `/vh-logo.svg`: JSON-LD
+  image and logo URLs pointed at redirects until 2026-11-17 (G30 never requested them; L5 does).
+- **With the Blob adapter on, Payload no longer serves `/api/media/file/*`**
+  (`disablePayloadAccessControl`; only client-upload completion still uses it). Payload hands
+  out direct Blob URLs through its afterRead hook, but the `media.url` columns still hold the
+  import-time proxy path — anything reading media with SQL derives the URL with
+  `mediaFileUrl()` (`lib/media-url.ts`), as live search does.
+- **Pages prerendered at build carry the BUILD database's content** (`/`, contact, sondage,
+  vh-tv, magazine-maroc, team). A server started against `vh_migration` on a `vh_magazine`
+  build serves seed data there; judge only request-time pages (articles, categories, search)
+  against `vh_migration`. Under `trailingSlash: true` the optimizer URL is `/_next/image/?url=`.
+- **This Mac's network does DNS64, and `next start` then refuses every remote image** with
+  `"url" parameter is not allowed`: the host also resolves to a NAT64 address
+  (`64:ff9b::/96`), which Next's in-process optimizer counts as private. Not an app bug and not
+  a Vercel concern (the platform optimizes against the build's allow-list). A gate that needs
+  the local optimizer on a remote image measures it first and loads
+  `scripts/lib/dns64-preload.cjs` into its server (see verify-launch-media-direct.mjs).
 - **The harness `ok()` exits only after stdout flushes**: code after it keeps running. Never
   call it mid-script; branch instead.
 - **Chromium reports layout boxes inside a closed `<details>`** (`content-visibility`): use
@@ -154,8 +189,15 @@ reported something other than what it measured.
   than chaining (`hooks/redirects.ts`). Pass `context: { skipRedirects: true }`
   from seeds and scripts.
 - Images use Next's own optimizer (unlike the sister sites) — spec §9 wants
-  AVIF/WebP and there is no CDN in front. Revisit at deploy time for Vercel quota.
-- **Legacy uploads** (`/wp-content/uploads/*`): middleware rewrites to
+  AVIF/WebP and there is no CDN in front. Sources are direct Blob URLs (LAUNCH.md step 5,
+  decided 2026-11-17), and `remotePatterns` admits this project's store only — the old
+  `*.public.blob.vercel-storage.com` wildcard let anyone bill transformations to us. The
+  store host is pinned in `next.config.ts`: Next freezes `images` into the build, so an
+  allow-list derived from a token the build cannot read would refuse every migrated image.
+  Video, audio and PDFs play straight from Blob, which serves byte ranges.
+- The request interceptor is `src/proxy.ts` (Next 16 renamed middleware; it runs on the
+  Node.js runtime and may not set `runtime`).
+- **Legacy uploads** (`/wp-content/uploads/*`): the proxy rewrites to
   `/api/legacy-media`, which resolves through `Media.legacyPath` with the rules in
   `lib/legacy-media.ts` (exact → `-WxH` folded → `-scaled` folded; NFC and NFD
   forms of each). Hit → 301 to the Blob URL, derived exactly as Payload's
