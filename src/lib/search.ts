@@ -1,4 +1,5 @@
 import { query } from '@/lib/db'
+import { mediaFileUrl } from '@/lib/media-url'
 
 /**
  * Full-text search over articles (spec §7).
@@ -47,7 +48,10 @@ export async function searchArticles(
 
   const offset = (Math.max(1, page) - 1) * pageSize
 
-  const rows = await query<SearchHit & { total: string }>(
+  // The thumbnail is read as a FILENAME and turned into a URL here: SQL bypasses Payload's
+  // afterRead hooks, and the stored `url` column is the proxy path written at import time,
+  // not the direct Blob URL the site serves (media-url.ts, gate GATES-LAUNCH L6).
+  const rows = await query<Omit<SearchHit, 'thumb_url'> & { thumb_file: string | null; total: string }>(
     `
     with q as (
       select websearch_to_tsquery('french', unaccent($1)) as tsq
@@ -60,7 +64,7 @@ export async function searchArticles(
            c.slug  as category_slug,
            pc.slug as parent_slug,
            c.name  as category_name,
-           coalesce(m.sizes_thumb_url, m.url) as thumb_url,
+           coalesce(m.sizes_thumb_filename, m.filename) as thumb_file,
            ts_rank(a.search_vector, q.tsq) as rank,
            count(*) over() as total
       from articles a
@@ -78,7 +82,10 @@ export async function searchArticles(
 
   const total = rows.length > 0 ? Number(rows[0].total) : 0
   return {
-    hits: rows.map(({ total: _t, ...hit }) => hit),
+    hits: rows.map(({ total: _t, thumb_file, ...hit }) => ({
+      ...hit,
+      thumb_url: thumb_file ? mediaFileUrl(thumb_file) : null,
+    })),
     total,
     page: Math.max(1, page),
     totalPages: Math.ceil(total / pageSize),

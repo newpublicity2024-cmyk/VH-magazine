@@ -15,7 +15,7 @@ import { formatDate, isoDate } from '@/lib/format'
 import { readingMinutes } from '@/lib/reading'
 import { getArticleBySlug, getRelatedArticles, getSiteSettings } from '@/lib/queries'
 import { articleUrl, categoryPath, categoryUrl } from '@/lib/routes'
-import { absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
+import { absoluteFileUrl, absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
 import { typoFr } from '@/lib/typo-fr'
 import type { Article, Category, Media, Tag } from '@/payload-types'
@@ -144,7 +144,7 @@ export default async function ArticlePage({ params }: Params) {
     dateModified: article.updatedAt || article.publishedAt,
     mainEntityOfPage: { '@type': 'WebPage', '@id': absolute },
     url: absolute,
-    image: image?.url ? [absoluteUrl(image.url)] : undefined,
+    image: image?.url ? [absoluteFileUrl(image.url)] : undefined,
     articleSection: category?.name,
     inLanguage: 'fr',
     publisher: {

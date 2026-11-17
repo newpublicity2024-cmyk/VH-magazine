@@ -22,7 +22,7 @@ import {
   getSiteSettings,
 } from '@/lib/queries'
 import { STATIC_ROUTES } from '@/lib/routes'
-import { absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
+import { absoluteFileUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
 import { typoFr } from '@/lib/typo-fr'
 import { buildSafe } from '@/lib/build-safe'
@@ -102,7 +102,7 @@ export default async function HomePage() {
     name: SITE.name,
     legalName: SITE.legalName,
     url: `${SITE_URL}/`,
-    logo: absoluteUrl('/vh-logo.svg'),
+    logo: absoluteFileUrl('/vh-logo.svg'),
     sameAs: [
       'https://www.facebook.com/VHMagazineMaroc',
       'https://twitter.com/VH_Magazine',
