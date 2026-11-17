@@ -6,7 +6,7 @@ rebuilt from WordPress + WPBakery. Sister sites: `MFM-sport`, `lallafatema`.
 Source of truth for scope: `vh-magazine-website-spec.md`, `vh_homepage_wireframe.svg`,
 and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
 
-## Session state (2026-11-11)
+## Session state (2026-11-17)
 
 - **Round 1 — accepted** (2026-08-30). Spec §11 steps 1–4, gates G1–G19.
 - **Round 2a — built, pushed, deployed; no recorded user acceptance.** Steps 5–7
@@ -22,14 +22,21 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   MySQL stays closed — the Mac's IP rotates daily): 8,121 of 8,128 articles,
   130 categories, 27,946 tags and 36,177 redirects are in `vh_migration`
   (`src/migrate/import-articles.ts`); 7 wait for P6, the 202 magazine-issue
-  posts wait on an owner decision. Nothing is in Neon yet.
-- `GATES.md` = G1–G42 + R3-G0–R3-G17 (60 gates, 59 runnable). G40–G41 (2026-11-11)
+  posts wait on an owner decision. Nothing is in Neon yet. 2026-11-17: the one
+  article WordPress dates 1970-01-01 (post 47196) is dated by its modified date;
+  the importer's re-runs now converge dates and reproduce their reports; the WP DB
+  tools' mysql2 is 3.24.6 (they still cannot reach the live DB — IP allowlist).
+  These fixes are committed on `design/round-3` only, not on `migration/media-import`.
+- `GATES.md` = G1–G44 + R3-G0–R3-G17 (62 gates, 61 runnable). G40–G41 (2026-11-11)
   cover two nav links G12 checked by text but never requested — Grand Angle and KIT MEDIA
   both 404'd. G42 opens an article in the admin (the editor had never rendered).
+  G43–G44 (2026-11-17): the writer gates (G19, G34, G35) clean up on every path, and
+  vh_magazine holds no gate debris (one stray G35 article and 100 test versions were removed).
 - Still open from round 1: the D4 visual punch list never arrived (R3-G12 now carries it).
 - **Round 3 (design finish) — built 2026-11-12 on branch `design/round-3`** (from
   `migration/media-import`; not pushed, not merged). `DESIGN-SPEC-R3.md` with amendments
-  C1–C5; D1–D8 all accepted as recommended. Full ledger from reset: **58/60 met**. Open,
+  C1–C5; D1–D8 all accepted as recommended. Full ledger from reset: **60/62 met**
+  (2026-11-17, 61 RUN lines for 61 runnable gates). Open,
   both owner inputs: **R3-G3** (VH's logo SVGs — `public/vh-logo*.svg` and
   `vh-mark-white.svg` are fixed-but-placeholder) and **R3-G12** (written approval of the
   `.playwright-mcp/r3-after-*` screenshots; `r3-before-*` for comparison). C5 (no global
@@ -115,6 +122,18 @@ reported something other than what it measured.
   call it mid-script; branch instead.
 - **Chromium reports layout boxes inside a closed `<details>`** (`content-visibility`): use
   `el.checkVisibility()`, not `getBoundingClientRect()`, to ask "can a reader see this".
+- **Delete an article's versions before the article.** `_articles_v.parent_id` is
+  `ON DELETE SET NULL`: delete the article first and its versions survive with a null parent,
+  where `delete … where parent_id = $1` can no longer find them (97 orphans had piled up from
+  G19/G35 by 2026-11-17). Use `deleteGateRows` in `scripts/lib/harness.mjs`.
+- **A gate that writes to the database runs its checks inside `withCleanup`, with `check()` /
+  `checkEqual()`** — `assert()` exits and skips the cleanup (G35 once left an article in
+  "Derniers articles"). Stamp every throwaway slug `g<NN>-…-<ms>` and sweep stale rows at
+  start. G43 makes each writer fail on purpose and counts what it left; G44 measures the DB.
+- **WordPress answers a zeroed post date with the Unix epoch** (post 47196: `date` and
+  `date_gmt` both 1970-01-01). The converter dates such a post by its modified date and says
+  so in `publishedFrom`; the importer converges existing articles' `publishedAt` through
+  `payload.update` — never SQL alone, since the admin editor opens the latest *version*.
 
 ## Conventions
 

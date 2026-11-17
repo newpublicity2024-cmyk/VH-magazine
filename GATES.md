@@ -11,6 +11,11 @@ G1–G19 are round 1 and re-run every pass as regression cover. G20–G39 are ro
 G40–G41 (round 2b, 2026-11-11) close two nav links that G12 checked by text but never
 requested — both 404'd. G42 (2026-11-11) opens an article in the admin: the committed admin
 import map was empty, so the body editor had never rendered and no gate had ever looked.
+G43–G44 (2026-11-17): the gates that write to vh_magazine (G19, G34, G35) left debris —
+an assertion exits the process and skips `finally`, and deleting an article before its
+versions orphans them (`_articles_v.parent_id` is ON DELETE SET NULL): one stray article
+in "Derniers articles" and 97 orphaned versions. G43 fails each writer on purpose and
+counts what it left; G44 measures the database itself.
 The migration itself is gated in the migration workspace
 (/Users/mc/work/hostinger-ftp/migration/GATES-P*.md), not here.
 
@@ -42,7 +47,7 @@ The migration itself is gated in the migration workspace
 - [x] G6: The production build completes successfully
   CHECK: pnpm run build && echo BUILD_OK
   EXPECT: BUILD_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=8fc7272656604bf1740cc7b295a53b4a313b382f546119e57277f2168c9aadd8; output-bytes=2174
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=ca6aaacb6609531ce9d13ca0c87b0992913957473966cf05b8da7f8e142fdb96; output-bytes=2175
 
 - [x] G7: The homepage returns 200 with lang="fr", exactly one h1, and a canonical link equal to NEXT_PUBLIC_SERVER_URL with a single trailing slash
   CHECK: node scripts/verify-home.mjs
@@ -67,7 +72,7 @@ The migration itself is gated in the migration workspace
 - [x] G11: Every article link is a 2-or-3-segment nested category path and every category link is under /category/, and at least one 3-segment article link is actually present
   CHECK: node scripts/verify-urls.mjs
   EXPECT: URLS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=15b9d47510aa5ff0b3bc05dacc5d2d83d850b9d50d3a5cb372c911b609a2214b; output-bytes=249
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=fc655684ed399794f33c2813c608795ceb3fc3164cbe7f90c92d5b5c4cb674b5; output-bytes=265
 
 - [x] G12: The top bar, primary nav and footer expose exactly the labels and hrefs spec sections 4.1 to 4.3 list
   CHECK: node scripts/verify-navlinks.mjs
@@ -97,22 +102,22 @@ The migration itself is gated in the migration workspace
 - [x] G17: The Payload admin is reachable and the seeded admin user authenticates, proving trailingSlash did not break it
   CHECK: node scripts/verify-admin.mjs
   EXPECT: ADMIN_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=a804d5e52d025b892de7862a10aa18660c125dedd6bdb996754c32535530ec31; output-bytes=69
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=99e5e0a0dcfe1f3c3b1d4322e8c7659d92bae902522b02e60527896f2bb69f8d; output-bytes=69
 
 - [x] G18: The header becomes sticky on scroll and the hamburger opens a drawer containing the full primary nav
   CHECK: node scripts/verify-header.mjs
   EXPECT: HEADER_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=a96cd9648933ad17ff60ad6f27f0ea61e8411ccbeff27302dc7ea8055ed51852; output-bytes=103
 
-- [x] G19: Renaming a published article creates exactly one redirect from its old URL, renaming again repoints that redirect rather than chaining, and renaming an unpublished article creates none
+- [x] G19: Renaming a published article creates exactly one redirect from its old URL, renaming again repoints that redirect rather than chaining, and renaming an unpublished article creates none — and the run leaves none of its articles, article versions or redirects behind
   CHECK: node scripts/verify-redirects.mjs
   EXPECT: REDIRECTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=ccc96b10af65f885696afb0b1067f9b973748be95f4250871840df7a9c4d6f09; output-bytes=213
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=8aaafdff4096e9f381814c457f26756008590f8d9a135cd3293523db1e65a7b8; output-bytes=322
 
 - [x] G20: An article page renders with its title as the single h1, a breadcrumb trail, a DD/MM/YYYY date, the rich-text body and share buttons
   CHECK: node scripts/verify-article.mjs
   EXPECT: ARTICLE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=5046ab559d7854db14c9a5bc9b6784600e2cec17b2b934283d27bbe97c821291; output-bytes=69
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=eb35b2d70b86a4f7023398100246c5fe1363c55be7f3c4d3ebb4e1ad5bac403c; output-bytes=69
 
 - [x] G21: The catch-all resolves both 2- and 3-segment article URLs, 301s a wrong-category path to the canonical URL without looping, and 404s a genuinely unknown slug
   CHECK: node scripts/verify-routing.mjs
@@ -122,12 +127,12 @@ The migration itself is gated in the migration workspace
 - [x] G22: A category page paginates at the declared page size, emits rel prev/next, and each page canonicalises to its own ?page=n rather than to page 1
   CHECK: node scripts/verify-category.mjs
   EXPECT: CATEGORY_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=7906ea7c7cbdfdb05f60d3de8eb7b9970bc228b8df6de6e3759d312d015ae090; output-bytes=132
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=38a2b5bb9227a4b60248a8f5d40e097026c1b1c9bbd5c2835293587c1c77e666; output-bytes=132
 
 - [x] G23: A nested category URL resolves and lists only articles in that subcategory, while its parent lists the subcategory's articles too
   CHECK: node scripts/verify-category-nested.mjs
   EXPECT: NESTED_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=6d38766a1987c06190f54d8902ad817944e2ea10864956a580bd867daf3f4015; output-bytes=55
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=c555a7ee5b985f769fe95aaba7e9a65b8e7370026212bc9ffc241fba8fb5c04b; output-bytes=55
 
 - [x] G24: The Les Unes archive lists every magazine issue and each issue's sommaire page renders its cover and summary
   CHECK: node scripts/verify-magazine.mjs
@@ -157,7 +162,7 @@ The migration itself is gated in the migration workspace
 - [x] G29: Viewing an article increments its view count exactly once per reader, and a repeat call from the same reader does not increment it again
   CHECK: node scripts/verify-viewcount.mjs
   EXPECT: VIEWCOUNT_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=cb388f32bd37e3f4f937fca8f54ba6ce1574410abd68325afd5bdc81f81c1626; output-bytes=75
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=c097674f36800825c7569c7fd75a084245f350f0dfee24dd44d518db8d9e590c; output-bytes=75
 
 - [x] G30: JSON-LD parses and validates: NewsArticle plus BreadcrumbList on an article, WebSite plus Organization on the homepage
   CHECK: node scripts/verify-jsonld.mjs
@@ -167,27 +172,27 @@ The migration itself is gated in the migration workspace
 - [x] G31: sitemap.xml lists every published article, category and issue as absolute vh.ma URLs with trailing slashes and excludes drafts, and news-sitemap.xml contains only articles from the last 48 hours
   CHECK: node scripts/verify-sitemap.mjs
   EXPECT: SITEMAP_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=57038915bbcdb4f657b3795e953a083cfa8caa04755616ef3dda9005b8e44eb5; output-bytes=104
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=b5b83b6b2bd7396325acbcbcb58374a7efa06aee432677c7f78d355546e028bf; output-bytes=104
 
 - [x] G32: rss.xml is well-formed XML whose item links are absolute vh.ma URLs matching the article route
   CHECK: node scripts/verify-rss.mjs
   EXPECT: RSS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=6facfbab59697f057020d553ed5b1ec7902ae841dbfc85bb62d47b7d01fe6668; output-bytes=64
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=f689fc2edf6e7b319f21a76fdb04568ea056e97538e6a89891f7ae37d7cb83c6; output-bytes=64
 
 - [x] G33: robots.txt allows indexing, sets max-image-preview large, and its Sitemap line is the absolute vh.ma sitemap URL
   CHECK: node scripts/verify-robots.mjs
   EXPECT: ROBOTS_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=0abf538db5509d77d0883a9598740622b04c7a1fdcff25dbeb0e3e7dc2eda305; output-bytes=58
 
-- [x] G34: Middleware 301s a stored old URL to its new one and leaves a live URL untouched at 200
+- [x] G34: Middleware 301s a stored old URL to its new one and leaves a live URL untouched at 200 — and the run leaves its redirect row behind in no case
   CHECK: node scripts/verify-middleware.mjs
   EXPECT: MIDDLEWARE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=a3306442fa6cba8f427d071fedd241ef13b7e846d24a026ea5554b340fecdade; output-bytes=125
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=831b1bc0d2cc6aba644d032a8891ba0f2073191f894abc65f10d7554ebddc1ad; output-bytes=166
 
-- [x] G35: Renaming an article A to B and back to A leaves A resolving with 200 and never creates a self-referencing redirect
+- [x] G35: Renaming an article A to B and back to A leaves A resolving with 200 and never creates a self-referencing redirect — and the run leaves none of its article, article versions or redirects behind
   CHECK: node scripts/verify-rename-cycle.mjs
   EXPECT: RENAMECYCLE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=838990860b213c4df2a56a2a36fa2372552735cea98e2494b866933b704249c5; output-bytes=184
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=fb48c9a26f1c27ec514d6fcff4af8094f51c3d4b5231caa8395bd8c39baee8e0; output-bytes=293
 
 - [x] G36: Every page type emits exactly one h1 and a self-referencing canonical built on the absolute vh.ma origin, never the deployment host
   CHECK: node scripts/verify-canonicals.mjs
@@ -223,6 +228,16 @@ The migration itself is gated in the migration workspace
   CHECK: node scripts/verify-admin-editor.mjs
   EXPECT: ADMIN_EDITOR_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=61c8a1af3b14e63b23d076e44efc0372455a39a0efc170f51dda53fb3b24949d; output-bytes=16
+
+- [x] G43: A G19, G34 or G35 run made to fail — inside its Payload driver, or after its records exist and its assertions run — exits non-zero with the injected failure and still leaves none of its own articles, article versions or redirects behind
+  CHECK: node scripts/verify-gate-cleanup.mjs
+  EXPECT: GATE_CLEANUP_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=21e61bf62c016c747de1bb0062692ab01ba61d07124366a2cb4b04ea1069bf12; output-bytes=716
+
+- [x] G44: The dev database holds no gate debris — no article or article version with a gate-stamped slug, no redirect from or to a gate path, no article version orphaned from its article, no contact message or newsletter subscriber with a gate address — and the detector counts a planted row of each kind before it measures
+  CHECK: node scripts/verify-no-debris.mjs
+  EXPECT: NO_DEBRIS_OK
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=e0559c62395b6a92cf645d7b262e6bfa3034ee6b325a57f4e5313e690f0d8308; output-bytes=240
 
 ## Round 3 — design finish (DESIGN-SPEC-R3.md, amendments C1–C4, decisions D1–D8)
 
@@ -284,7 +299,7 @@ the round-3 build (standing harness policy).
 - [x] R3-G10: First-party JS on home and article grows at most 15 KB gz over the recorded pre-round-3 baseline, and Lighthouse mobile (median of 3) scores at least 90 with CLS at most 0.02 on home, article and category
   CHECK: node scripts/verify-r3-perf.mjs
   EXPECT: R3_PERF_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=f6fd6f36f58f0e76cb8073489398609a17061c670e0b4ec86766bc35d306d429; output-bytes=477
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=8a99bbf78a76ed0a1be0ec60e4d5ee5cb5d7f377f35ae4e768c5255d17b444f1; output-bytes=477
 
 - [x] R3-G11: axe reports zero serious or critical violations on home, article, category, search and 404 at 1440 and 390, and on the open drawer and search panel
   CHECK: node scripts/verify-r3-a11y.mjs
