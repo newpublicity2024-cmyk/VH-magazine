@@ -49,6 +49,13 @@ Recorded 2026-11-17. Details live in `CLAUDE.md` (session state) and, for the mi
        `payload migrate` — so pushing ANY branch applies its migrations (Media `legacyPath` /
        `legacyWpId`, …) to that database, the production Neon one if Preview shares it. Give
        Preview its own database (a Neon branch) first, or accept that the schema moves early.
+       **Done 2026-11-17:** Neon branch `preview` (br-proud-lab-b1tqailj, a copy of the
+       prototype DB: 34 articles, migrations up to 20260831_003322) is Preview's `DATABASE_URL`;
+       the original variable is Production-only. The push is still to do: `origin` now carries
+       the account username like the sister repos (it fell back to the Ben776ya credential and got
+       403), and the push needs the newpublicity2024-cmyk credential typed once in a terminal.
+       Preview still shares the production Blob store (`BLOB_READ_WRITE_TOKEN`): an upload made in a
+       preview admin lands in it.
 2. [ ] **Final sync (P6), last thing before launch**: posts and uploads published since the
        survey, plus the 7 held articles — re-run the REST survey, FTP delta of uploads after
        2026-11-05, convert, import (re-runs converge), then `import-page-redirects.ts` (it
@@ -58,10 +65,10 @@ Recorded 2026-11-17. Details live in `CLAUDE.md` (session state) and, for the mi
        default admin password.
 4. [ ] Verify on Vercel with the real data: `/wp-content/uploads/*` → Blob, the 36k-row
        redirects, sitemaps, article pages — the prototype has only ever served seed data.
-       **First check on that deploy**: Vercel lists `BLOB_READ_WRITE_TOKEN` as type "Config"
-       with a value that is not visibly `vercel_blob_rw_…`; Payload's Blob adapter parses that
-       form and throws at boot otherwise (the local copy has the right form). Images no longer
-       depend on it at build (the store host is pinned), uploads and media URLs still do.
+       First check on that deploy: the Blob token. The API reports it as type `encrypted` (the
+       CLI's `eyJ2…` was the encrypted envelope, not the value); Payload's adapter needs the
+       `vercel_blob_rw_…` form and throws at boot otherwise — the first preview build shows it,
+       since the build loads the Payload config. Images do not depend on it (host pinned).
 5. [x] **Image serving decided (2026-11-17, GATES-LAUNCH L6)**: direct Blob URLs
        (`disablePayloadAccessControl`) — the 229 migrated videos/audio files (2.5 GB, up to
        81 MB) no longer stream through a function, and Blob serves byte ranges. Next's
