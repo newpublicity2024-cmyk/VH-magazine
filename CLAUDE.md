@@ -8,6 +8,8 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
 
 ## Session state (2026-11-17)
 
+**What is left before launch: `LAUNCH.md`** (owner inputs, engineering steps, critical path).
+
 - **Round 1 — accepted** (2026-08-30). Spec §11 steps 1–4, gates G1–G19.
 - **Round 2a — built, pushed, deployed; no recorded user acceptance.** Steps 5–7
   (all page types, search, view counter, SEO layer, redirects), gates G20–G39,
@@ -33,14 +35,14 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   G43–G44 (2026-11-17): the writer gates (G19, G34, G35) clean up on every path, and
   vh_magazine holds no gate debris (one stray G35 article and 100 test versions were removed).
 - Still open from round 1: the D4 visual punch list never arrived (R3-G12 now carries it).
-- **Round 3 (design finish) — built 2026-11-12 on branch `design/round-3`** (from
-  `migration/media-import`; not pushed, not merged). `DESIGN-SPEC-R3.md` with amendments
-  C1–C5; D1–D8 all accepted as recommended. Full ledger from reset: **60/62 met**
-  (2026-11-17, 61 RUN lines for 61 runnable gates). Open,
-  both owner inputs: **R3-G3** (VH's logo SVGs — `public/vh-logo*.svg` and
-  `vh-mark-white.svg` are fixed-but-placeholder) and **R3-G12** (written approval of the
-  `.playwright-mcp/r3-after-*` screenshots; `r3-before-*` for comparison). C5 (no global
-  smooth scroll) is a deviation of mine the owner has not yet seen.
+- **Round 3 (design finish) — built 2026-11-12 on branch `design/round-3`, approved by the
+  owner 2026-11-17** (relayed by the user; R3-G12 met). From `migration/media-import`; not
+  pushed, not merged. `DESIGN-SPEC-R3.md` with amendments
+  C1–C5; D1–D8 all accepted as recommended. Full ledger from reset: 60/62 runnable-met
+  (2026-11-17, 61 RUN lines for 61 runnable gates), **61/62** with the owner's approval
+  (R3-G12, manual). Open: **R3-G3** only — VH's logo SVGs (`public/vh-logo*.svg` and
+  `vh-mark-white.svg` are fixed-but-placeholder). C5 (no global smooth scroll) is a
+  deviation of mine the owner was never shown explicitly.
   `scripts/r3-baseline.json` is the pre-R3 perf baseline (commit 3ab214b) — never re-record.
 
 ## Standing harness policy

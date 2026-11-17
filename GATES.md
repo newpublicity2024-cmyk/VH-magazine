@@ -306,8 +306,8 @@ the round-3 build (standing harness policy).
   EXPECT: R3_A11Y_OK
   EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=9ba05a5133b7c0821f8d9546efa0d600e493357eeb8cbfbbdf927cbd5fefa20a; output-bytes=58
 
-- [ ] R3-G12: The owner approves the round-3 look in writing from the r3-after screenshot set (home, article, category, VH TV, search open, drawer open, 404 at 1440 and 390)
-  EVIDENCE: pending
+- [x] R3-G12: The owner approves the round-3 look in writing from the r3-after screenshot set (home, article, category, VH TV, search open, drawer open, 404 at 1440 and 390)
+  EVIDENCE: manual — owner approval of the round-3 design relayed in writing by the user, 2026-11-17 ("the owner approved on the round 3-design"); covers the 13 .playwright-mcp/r3-after-* screenshots (2026-11-12 10:45 UTC); the one later component change, a31a200, renames data attributes no CSS selects
 
 - [x] R3-G13: The decisions render as decided: accent #166fc1 with no red token (C1), black masthead (D1), square image corners and 12 px floating panels (D2), no View Transitions (D4), Vidéos and People on black (D5), titles below images (D6), logo centred in the masthead and left in the compact bar (D7), rank numerals 1–5 in Les plus lus (D8)
   CHECK: node scripts/verify-r3-decisions.mjs
