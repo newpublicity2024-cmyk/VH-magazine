@@ -7,14 +7,17 @@ Rewritten 2026-11-19 after the first production deployment with a database. Deta
 
 ## Where it stands (2026-11-19)
 
-- **Production** (`vh-magazine-iota.vercel.app`, main @ 79c4396, built 09:47 UTC) serves the seed
-  demo from Neon branch `production` (34 articles, 47 media, 4 issues, 1 user) — the first build
-  that ever had a database. Checked route by route (`scripts/verify-deployed.mjs`, GATES-FINISH F2).
+- **Production** (`vh-magazine-iota.vercel.app`) serves the seed demo from Neon branch
+  `production` (34 articles, 47 media, 4 issues, 1 user); its first database-backed build was
+  2026-11-19 09:47 UTC. Checked route by route (`scripts/verify-deployed.mjs`, GATES-FINISH F2).
   Fixed there today: the public default admin password worked (rotated → `production-admin.txt`,
   F3) and every image was a 404 (the seed's 282 files uploaded to Blob, F10).
-- **The code on `launch/post-merge` is ahead of production** (not pushed): body search, ISR
-  articles, magazine issues, WordPress pagination redirects, the push tool. Production gets it
-  only when it is pushed to `main` (Vercel builds `main`).
+- **Merged and deployed 2026-11-19** — PR #2 (merge commit d031cd9, pushed with the account's
+  fine-grained token on the user's go-ahead): body search, ISR articles and issues (+ the Next
+  patch), magazine-issue import, WordPress pagination redirects, the push tool. The production
+  build migrated Neon `production` (`20261119_120000_search_body`); re-verified on the live alias:
+  `verify-deployed.mjs` and `verify-prod-admin.mjs` pass, an article's second request is a Vercel
+  cache HIT (0.32 s), a wrong-category URL sends one Location, `/page/2/` 301s to `/`.
 - **Archive** (local `vh_migration`, P6 rehearsal 2026-11-19): see "Numbers" below.
 - Design: round 3 approved by the owner (2026-11-17).
 - **Ledgers, all re-run from a reset on 2026-11-19 (RUN lines = runnable gates in each):**
@@ -33,9 +36,7 @@ Rewritten 2026-11-19 after the first production deployment with a database. Deta
 2. **Make the GitHub repository private** (`newpublicity2024-cmyk/VH-magazine` is public). It
    carries CLAUDE.md with the dev seed's admin login (no longer valid on production) and the
    whole migration's internals.
-3. **Go-ahead: push `launch/post-merge` to GitHub and merge to `main`** — this deploys the new
-   code to production (the build runs migration `20261119_120000_search_body` on the Neon
-   production branch).
+3. ~~Push and merge~~ — done 2026-11-19 (PR #2, deployed; see above).
 4. **Go-ahead: LAUNCH step 3, the archive push** (one command, rehearsed — below). Replaces every
    table of Neon branch `production` (today the seed demo) with `vh_migration`; the admin
    account in `production-admin.txt` is re-created so the login keeps working.

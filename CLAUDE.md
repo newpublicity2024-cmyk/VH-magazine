@@ -10,8 +10,9 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
 
 **What is left before launch: `LAUNCH.md`** (owner inputs, engineering steps, critical path).
 
-- **2026-11-19 finishing pass — ledger `GATES-FINISH.md`, branch `launch/post-merge` (uncommitted,
-  not pushed).** Production (`vh-magazine-iota.vercel.app`) had its first database-backed build at
+- **2026-11-19 finishing pass — ledger `GATES-FINISH.md`; merged to `main` as PR #2 (d031cd9) and
+  deployed to production the same day** (pushed with the fine-grained token the user keeps in `.env`
+  as `fine_grained_token ` — note the space before `=`; read by one-shot helpers, never printed). Production (`vh-magazine-iota.vercel.app`) had its first database-backed build at
   09:47 UTC (the user set `DATABASE_URL`/`PAYLOAD_SECRET`); `MEDIA_ORIGIN` is still empty there.
   Fixed on production directly, with the user's go-ahead: the seed's public default admin password
   worked (rotated; credential in git-ignored `production-admin.txt`) and every image 404'd (the
