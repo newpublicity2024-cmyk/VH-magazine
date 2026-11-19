@@ -213,6 +213,11 @@ export interface Media {
    */
   alt: string;
   credit?: string | null;
+  /**
+   * Ancien chemin sur vh.ma, ex. wp-content/uploads/2024/03/photo.jpg
+   */
+  legacyPath?: string | null;
+  legacyWpId?: number | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -690,6 +695,8 @@ export interface RedirectsSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   credit?: T;
+  legacyPath?: T;
+  legacyWpId?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

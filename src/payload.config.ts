@@ -1,6 +1,7 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import {
   BlockquoteFeature,
+  BlocksFeature,
   BoldFeature,
   FixedToolbarFeature,
   HeadingFeature,
@@ -22,6 +23,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { VideoEmbedBlock } from './blocks/VideoEmbed'
 import { Articles } from './collections/Articles'
 import { Banners } from './collections/Banners'
 import { Categories } from './collections/Categories'
@@ -57,7 +59,19 @@ const blobEnabled = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 const storagePlugins = blobEnabled
   ? [
       vercelBlobStorage({
-        collections: { media: true },
+        collections: {
+          media: {
+            // Hand out the public Blob URL, not Payload's proxy path /api/media/file/<name>
+            // (LAUNCH.md step 5, gate GATES-LAUNCH L6). Through the proxy every image the
+            // optimizer missed, every og:image fetch and every byte of the 229 migrated videos
+            // and audio files (2.5 GB, up to 81 MB each) ran through a Vercel Function that
+            // also called Blob head() first. Media read access is `anyone` already, so the
+            // proxy's access check protected nothing; Blob serves byte ranges itself. With
+            // this on, Payload no longer serves /api/media/file/* (except to finish a client
+            // upload), so nothing may build that path while the adapter is on (media-url.ts).
+            disablePayloadAccessControl: true,
+          },
+        },
         token: process.env.BLOB_READ_WRITE_TOKEN as string,
         // Browser uploads straight to Blob. Without this the file rides inside
         // the POST to /api/media and Vercel kills any body over 4.5 MB at the
@@ -103,6 +117,9 @@ export default buildConfig({
       OrderedListFeature(),
       BlockquoteFeature(),
       UploadFeature(),
+      // In-text YouTube videos, rendered as the click-to-load facade (RichTextBody);
+      // the migrated WordPress articles carry their embeds as this block (round 2b).
+      BlocksFeature({ blocks: [VideoEmbedBlock] }),
       HorizontalRuleFeature(),
       FixedToolbarFeature(),
       InlineToolbarFeature(),
@@ -140,6 +157,18 @@ export default buildConfig({
     push: false,
     pool: {
       connectionString: explicitSslMode(process.env.DATABASE_URL || ''),
+      // A suspended Neon compute takes several seconds to wake, and node-postgres
+      // defaults to a short connect timeout — observed live: three probes right
+      // after an idle period returned in 3533ms, 2225ms, then 415ms, and the
+      // first request had already failed with ETIMEDOUT. On Vercel the same
+      // cold start happens after any quiet spell, so allow for the wake-up
+      // rather than serving a 500 to whoever arrives first.
+      connectionTimeoutMillis: 30_000,
+      // Serverless invocations are short-lived and each holds a slot; a small
+      // pool with a brisk idle timeout avoids exhausting Neon's connection
+      // limit across concurrent lambdas.
+      max: 10,
+      idleTimeoutMillis: 30_000,
     },
   }),
   sharp,

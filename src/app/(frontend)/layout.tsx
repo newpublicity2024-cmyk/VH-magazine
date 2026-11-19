@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Archivo, Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import React from 'react'
 
 import './styles.css'
@@ -7,6 +7,9 @@ import './styles.css'
 import { BackToTop } from '@/components/BackToTop'
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
+import { ImageFader } from '@/components/ImageFader'
+import { Masthead } from '@/components/Masthead'
+import { Toaster } from '@/components/Toaster'
 import { TopBar } from '@/components/TopBar'
 import { getSiteSettings } from '@/lib/queries'
 import { SITE } from '@/lib/site'
@@ -16,17 +19,21 @@ import { SITE_URL, ogImageUrl } from '@/lib/seo'
  * Self-hosted via next/font (spec §9): subsetted, preloaded, `display: swap`,
  * and no render-blocking request to a font CDN. Latin only — the site is
  * French, so shipping other subsets would be dead weight.
+ *
+ * The files are vendored (src/fonts, with their OFL licences) rather than fetched by
+ * next/font/google at build time: since 2026-11-11 Google answers Turbopack's font
+ * request with `&`-bearing URLs Turbopack cannot resolve, which broke the build and had
+ * already shipped Archivo as a dead URL. Both are variable fonts covering the weights
+ * the site uses; next/font/local still generates the size-adjusted Arial fallback.
  */
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const inter = localFont({
+  src: [{ path: '../../fonts/inter-latin.woff2', weight: '400 700', style: 'normal' }],
   display: 'swap',
   variable: '--font-inter',
 })
 
-const archivo = Archivo({
-  subsets: ['latin'],
-  weight: ['600', '700'],
+const archivo = localFont({
+  src: [{ path: '../../fonts/archivo-latin.woff2', weight: '600 700', style: 'normal' }],
   display: 'swap',
   variable: '--font-archivo',
 })
@@ -63,23 +70,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={SITE.lang} className={`${inter.variable} ${archivo.variable}`}>
-      <body className="flex min-h-screen flex-col bg-surface text-ink-soft">
+      <body className="flex min-h-screen flex-col bg-canvas text-ink">
         <a
           href="#main"
-          className="sr-only bg-vh-red px-4 py-2 text-white focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[200]"
+          className="type-button sr-only bg-accent px-4 py-3 text-white focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[200]"
         >
-          Aller au contenu principal
+          Aller au contenu
         </a>
 
         <TopBar social={social} />
+        <Masthead />
         <Header social={social} />
 
-        <main id="main" tabIndex={-1} className="flex-1">
+        <main id="main" tabIndex={-1} className="flex-1 outline-none">
           {children}
         </main>
 
         <Footer social={social} />
         <BackToTop />
+        <Toaster />
+        <ImageFader />
       </body>
     </html>
   )

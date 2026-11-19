@@ -1,49 +1,79 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { PlayIcon } from '@/components/icons'
 import { formatDate, isoDate } from '@/lib/format'
 import { articleUrl } from '@/lib/routes'
-import type { Article, Media } from '@/payload-types'
+import { typoFr } from '@/lib/typo-fr'
+import type { Article, Category, Media } from '@/payload-types'
 
 /**
- * The one card component behind every article on the homepage (spec §6.4).
+ * The card behind every article list (spec §6.4, DESIGN-SPEC-R3 §4.6).
  *
  * Variants:
- *   default    16:9 grid card — Actu, Lifestyle, Moteur, People
- *   video      as default, with a play affordance — the Vidéos block
- *   horizontal small thumb + title, for the sidebar lists
- *   compact    small grid card — Chroniques cigare
+ *   default     3:2 grid card — Lifestyle, Moteur, People, related, 404
+ *   lead        16:10, larger title + excerpt — first item of Actu, of listings
+ *   video       16:9 with a dark-material play circle — Vidéos
+ *   compact     4:3 small grid card — Chroniques cigare
+ *   horizontal  thumbnail left, text right — "Derniers articles" (sm) and listing rows (lg)
+ *   rank        rank numeral, title, 72 px thumbnail right — "Les plus lus" (D8)
  *
- * Every variant emits `data-card` on its <article>, which is what the count gate
- * measures, and a <time data-date> in DD/MM/YYYY with an ISO `dateTime`.
+ * One link per card: the title, stretched over the card with ::after, so a reader (and a
+ * screen reader) meets one destination, not an image link and a title link. Title and
+ * date are always visible — nothing depends on hover (spec R3 §1.2). Every variant keeps
+ * `<article data-card>` and `<time data-date>` in DD/MM/YYYY, which gates G9–G11 and G41
+ * measure.
  */
 
-type Variant = 'default' | 'video' | 'horizontal' | 'compact'
+export type CardVariant = 'default' | 'lead' | 'video' | 'compact' | 'horizontal' | 'rank'
+type Tone = 'light' | 'dark'
 
-/** `sizes` per variant so the optimizer serves an appropriately-sized file. */
-const SIZES: Record<Variant, string> = {
-  default: '(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw',
+const SIZES: Record<CardVariant, string> = {
+  default: '(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw',
+  lead: '(min-width: 1024px) 830px, 100vw',
   video: '(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw',
-  horizontal: '96px',
   compact: '(min-width: 1024px) 220px, (min-width: 640px) 33vw, 50vw',
+  horizontal: '(min-width: 640px) 240px, 112px',
+  rank: '72px',
 }
 
 const asMedia = (v: unknown): Media | null =>
   v && typeof v === 'object' && 'url' in (v as Media) ? (v as Media) : null
+const asCategory = (v: unknown): Category | null =>
+  v && typeof v === 'object' && 'name' in (v as Category) ? (v as Category) : null
 
 export function ArticleCard({
   article,
   variant = 'default',
   priority = false,
+  tone = 'light',
+  rank,
+  size = 'sm',
+  kicker = false,
+  excerpt = false,
 }: {
   article: Article
-  variant?: Variant
-  /** Only the first Actu card sets this — it is the LCP element (spec §9). */
+  variant?: CardVariant
+  /** Only the LCP card sets this (spec §9): eager, fetchpriority high, no fade. */
   priority?: boolean
+  tone?: Tone
+  /** The 1-based position for the `rank` variant. */
+  rank?: number
+  /** `horizontal` only: sm = 88 px square (sidebar), lg = 4:3 240 px (listing rows). */
+  size?: 'sm' | 'lg'
+  /** Show the category above the title — for blocks that mix categories. */
+  kicker?: boolean
+  /** Show the excerpt (lead always does; horizontal lg when asked). */
+  excerpt?: boolean
 }) {
   const image = asMedia(article.featuredImage)
   const href = articleUrl(article as Parameters<typeof articleUrl>[0])
-  const date = formatDate(article.publishedAt)
+  const title = typoFr(article.title)
+  const category = asCategory(article.category)
+  const dark = tone === 'dark'
+  const titleColor = dark ? 'text-night-ink' : 'text-ink'
+  const metaColor = dark ? 'text-night-ink-2' : 'text-meta'
+  const sizes = variant === 'horizontal' && size === 'sm' ? '88px' : SIZES[variant]
 
   const media = image?.url ? (
     <Image
@@ -51,71 +81,105 @@ export function ArticleCard({
       alt={image.alt || article.title}
       width={image.width || 1280}
       height={image.height || 720}
-      sizes={SIZES[variant]}
+      sizes={sizes}
       priority={priority}
-      // Next 16's `priority` drops loading="lazy" but does not by itself emit
-      // fetchpriority="high" on the <img>. That attribute is the actual signal
-      // the browser uses to prioritise the LCP image, so set it explicitly
-      // rather than relying on the framework's implicit behaviour (spec §9).
+      // Next 16's `priority` does not emit fetchpriority="high" on the <img>; that
+      // attribute is the browser's actual LCP signal (spec §9), so set it explicitly.
       fetchPriority={priority ? 'high' : undefined}
-      // `priority` already implies eager; setting loading="lazy" alongside it
-      // would contradict the preload hint.
       loading={priority ? undefined : 'lazy'}
+      data-fade={priority ? undefined : true}
       className="h-full w-full object-cover"
     />
-  ) : (
-    <div className="h-full w-full bg-wash" aria-hidden="true" />
+  ) : null
+
+  const kickerEl =
+    kicker && category ? (
+      <p data-kicker className={`type-kicker mb-2 ${dark ? 'text-accent-on-dark' : 'text-accent'}`}>
+        {category.name}
+      </p>
+    ) : null
+
+  const titleEl = (cls: string) => (
+    <h3 data-headline className={`${cls} ${titleColor}`}>
+      <Link href={href} className="vh-card-link">
+        {title}
+      </Link>
+    </h3>
   )
 
-  if (variant === 'horizontal') {
+  const dateEl = (cls = 'mt-2') => (
+    <time data-date dateTime={isoDate(article.publishedAt)} className={`type-meta block ${cls} ${metaColor}`}>
+      {formatDate(article.publishedAt)}
+    </time>
+  )
+
+  const excerptEl = (cls: string) =>
+    article.excerpt ? (
+      <p className={`type-copy vh-clamp-3 ${cls} ${dark ? 'text-night-ink-2' : 'text-ink-2'}`}>{typoFr(article.excerpt)}</p>
+    ) : null
+
+  if (variant === 'rank') {
     return (
-      <article data-card className="vh-card group flex gap-3">
-        <Link href={href} className="vh-card-media relative block h-[64px] w-[96px] shrink-0">
+      <article data-card data-variant="rank" className="vh-card flex items-start gap-3">
+        <span data-rank aria-hidden="true" className="type-rank w-8 shrink-0 text-ink-4">
+          {rank}
+        </span>
+        <div className="min-w-0 flex-1">
+          {titleEl('type-title-sm vh-clamp-3')}
+          {dateEl('mt-1')}
+        </div>
+        <div data-media className="vh-card-media size-18 shrink-0">
           {media}
-        </Link>
-        <div className="min-w-0">
-          <h3 className="vh-card-title vh-clamp-3 text-[13px] font-semibold leading-snug text-ink transition-colors">
-            <Link href={href}>{article.title}</Link>
-          </h3>
-          <time data-date dateTime={isoDate(article.publishedAt)} className="mt-1 block text-[11px] text-meta">
-            {date}
-          </time>
         </div>
       </article>
     )
   }
 
-  const aspect = variant === 'compact' ? 'aspect-[4/3]' : 'aspect-video'
+  if (variant === 'horizontal') {
+    const lg = size === 'lg'
+    return (
+      <article data-card data-variant="horizontal" className={`vh-card flex ${lg ? 'gap-4 sm:gap-6' : 'gap-3'}`}>
+        <div
+          data-media
+          className={`vh-card-media shrink-0 ${lg ? 'aspect-[4/3] w-28 sm:w-60' : 'size-22'}`}
+        >
+          {media}
+        </div>
+        <div className="min-w-0 flex-1">
+          {kickerEl}
+          {titleEl(lg ? 'type-title vh-clamp-3' : 'type-title-sm vh-clamp-3')}
+          {lg && excerpt ? excerptEl('mt-2 hidden sm:block') : null}
+          {dateEl(lg ? 'mt-3' : 'mt-1')}
+        </div>
+      </article>
+    )
+  }
+
+  const aspect = { default: 'aspect-[3/2]', lead: 'aspect-[16/10]', video: 'aspect-video', compact: 'aspect-[4/3]' }[
+    variant
+  ]
+  const titleCls = {
+    default: 'type-title vh-clamp-3',
+    lead: 'type-title-lg vh-clamp-3',
+    video: 'type-title vh-clamp-3',
+    compact: 'type-title-sm vh-clamp-3',
+  }[variant]
 
   return (
-    <article data-card className="vh-card group flex flex-col">
-      <Link href={href} className={`vh-card-media relative block ${aspect}`}>
+    <article data-card data-variant={variant} className="vh-card flex flex-col">
+      <div data-media className={`vh-card-media ${aspect}`}>
         {media}
         {variant === 'video' ? (
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60 transition-colors group-hover:bg-vh-red">
-              <svg viewBox="0 0 24 24" className="ml-0.5 h-5 w-5 fill-white">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </span>
+          <span aria-hidden="true" className="vh-play">
+            <PlayIcon className="ml-1 h-5 w-5" />
           </span>
         ) : null}
-      </Link>
-
-      <div className="pt-2.5">
-        <h3
-          className={`vh-card-title vh-clamp-2 font-semibold leading-snug text-ink transition-colors ${
-            variant === 'compact' ? 'text-[13px]' : 'text-[15px]'
-          }`}
-        >
-          <Link href={href}>{article.title}</Link>
-        </h3>
-        <time data-date dateTime={isoDate(article.publishedAt)} className="mt-1.5 block text-[11px] text-meta">
-          {date}
-        </time>
+      </div>
+      <div className={variant === 'lead' ? 'pt-4' : 'pt-3'}>
+        {kickerEl}
+        {titleEl(titleCls)}
+        {variant === 'lead' ? excerptEl('mt-2') : null}
+        {dateEl()}
       </div>
     </article>
   )

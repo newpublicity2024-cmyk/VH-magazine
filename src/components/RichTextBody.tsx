@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { VideoEmbed } from '@/components/VideoEmbed'
+import { typoFr } from '@/lib/typo-fr'
 
 /**
  * Render a Lexical document to React.
@@ -34,7 +35,7 @@ const ITALIC = 1 << 1
 const UNDERLINE = 1 << 3
 
 function renderText(node: Node, key: string): ReactNode {
-  let out: ReactNode = node.text ?? ''
+  let out: ReactNode = typoFr(node.text ?? '')
   const f = typeof node.format === 'number' ? node.format : 0
   if (f & BOLD) out = <strong>{out}</strong>
   if (f & ITALIC) out = <em>{out}</em>
@@ -46,9 +47,50 @@ function renderChildren(children: Node[] | undefined, prefix: string): ReactNode
   return (children ?? []).map((child, i) => renderNode(child, `${prefix}-${i}`))
 }
 
+/**
+ * A paragraph that is nothing but a link to a social post (a WordPress oEmbed that never
+ * rendered after migration) — returns that URL, else null.
+ */
+const SOCIAL = /^(?:www\.)?(instagram\.com|facebook\.com|fb\.watch|twitter\.com|x\.com|tiktok\.com|linkedin\.com)$/i
+function embedUrl(node: Node): string | null {
+  const kids = (node.children ?? []).filter((k) => !(k.type === 'text' && !String(k.text ?? '').trim()))
+  if (kids.length !== 1) return null
+  const only = kids[0]
+  const raw =
+    only.type === 'link'
+      ? String((only.fields as { url?: string })?.url ?? only.url ?? '')
+      : only.type === 'text'
+        ? String(only.text ?? '').trim()
+        : ''
+  if (!/^https?:\/\/\S+$/i.test(raw)) return null
+  if (only.type === 'link') {
+    const text = (only.children ?? []).map((c) => c.text ?? '').join('').trim()
+    if (text && text !== raw && !/^https?:\/\//i.test(text)) return null
+  }
+  try {
+    return SOCIAL.test(new URL(raw).hostname) ? raw : null
+  } catch {
+    return null
+  }
+}
+
 function renderNode(node: Node, key: string): ReactNode {
   if (!node) return null
   if (node.type === 'text') return renderText(node, key)
+  if (node.type === 'paragraph') {
+    const url = embedUrl(node)
+    if (url) {
+      const host = new URL(url).hostname.replace(/^www\./, '')
+      return (
+        <p key={key}>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="vh-embed">
+            <span className="type-copy-sm min-w-0 truncate">Publication {host}</span>
+            <span className="type-button shrink-0 text-accent">Voir la publication ›</span>
+          </a>
+        </p>
+      )
+    }
+  }
 
   const kids = renderChildren(node.children, key)
 
@@ -86,8 +128,33 @@ function renderNode(node: Node, key: string): ReactNode {
       )
     }
     case 'upload': {
-      const v = node.value as { url?: string; alt?: string; width?: number; height?: number } | undefined
+      const v = node.value as
+        | { url?: string; alt?: string; width?: number; height?: number; mimeType?: string }
+        | undefined
       if (!v?.url) return null
+      // Uploaded MP4/MP3 files (migrated WordPress <video>/<audio> players) play
+      // natively; only the metadata loads until the reader presses play.
+      if (v.mimeType?.startsWith('video/')) {
+        return (
+          <video
+            key={key}
+            src={v.url}
+            controls
+            preload="metadata"
+            playsInline
+            className="h-auto w-full"
+          >
+            <a href={v.url}>{v.alt || 'Vidéo'}</a>
+          </video>
+        )
+      }
+      if (v.mimeType?.startsWith('audio/')) {
+        return (
+          <audio key={key} src={v.url} controls preload="metadata" className="w-full">
+            <a href={v.url}>{v.alt || 'Audio'}</a>
+          </audio>
+        )
+      }
       return (
         <Image
           key={key}
@@ -97,7 +164,8 @@ function renderNode(node: Node, key: string): ReactNode {
           height={v.height || 720}
           sizes="(min-width: 1024px) 720px, 100vw"
           loading="lazy"
-          className="h-auto w-full"
+          data-fade
+          className="h-auto w-full bg-canvas-2"
         />
       )
     }
@@ -116,5 +184,9 @@ function renderNode(node: Node, key: string): ReactNode {
 export function RichTextBody({ data }: { data: unknown }) {
   const root = (data as { root?: Node } | null)?.root
   if (!root?.children?.length) return null
-  return <div data-article-body className="vh-prose">{renderChildren(root.children, 'n')}</div>
+  return (
+    <div data-article-body className="vh-prose">
+      {renderChildren(root.children, 'n')}
+    </div>
+  )
 }

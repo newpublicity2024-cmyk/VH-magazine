@@ -1,7 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Edge middleware: legacy-URL handling (A3, B5) and staging noindex (B3).
+ * Request proxy (Next 16's name for middleware): legacy-URL handling (A3, B5) and staging
+ * noindex (B3).
+ *
+ * Renamed from `middleware.ts` on 2026-11-17 — Next 16 deprecated that file convention.
+ * A proxy always runs on the Node.js runtime (it may not set `runtime`); the middleware ran
+ * on the Edge runtime. Nothing below depends on Edge APIs, and the module-scope map cache
+ * lasts longer on Node, where Fluid compute reuses an instance across requests.
  *
  * Everything here runs on every request, so it is ordered cheapest-first and
  * does no network work at all for the overwhelmingly common case of a normal
@@ -60,7 +66,7 @@ function applyNoindex(response: NextResponse, host: string): NextResponse {
   return response
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
   const host = request.headers.get('host') || ''
   const origin = request.nextUrl.origin
@@ -79,6 +85,9 @@ export async function middleware(request: NextRequest) {
 
   // ── Legacy WordPress media: /wp-content/uploads/... (B1) ─────────────────
   if (pathname.startsWith('/wp-content/uploads/')) {
+    // The handler reads the ORIGINAL pathname: Next delivers a rewritten request
+    // to it with the original URL and without this `?path=` (see requestedPath()
+    // in the route). The param stays for platforms that do pass it through.
     const url = request.nextUrl.clone()
     url.pathname = '/api/legacy-media'
     url.searchParams.set('path', pathname)

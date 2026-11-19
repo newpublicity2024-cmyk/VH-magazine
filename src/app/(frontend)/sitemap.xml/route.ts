@@ -49,6 +49,7 @@ export async function GET() {
     urlEntry(absoluteUrl('/'), null, '1.0'),
     urlEntry(absoluteUrl(STATIC_ROUTES.lesUnes), null, '0.6'),
     urlEntry(absoluteUrl(STATIC_ROUTES.vhTv), null, '0.6'),
+    urlEntry(absoluteUrl(STATIC_ROUTES.grandAngle), null, '0.6'),
     urlEntry(absoluteUrl(STATIC_ROUTES.contact), null, '0.3'),
     urlEntry(absoluteUrl(STATIC_ROUTES.teamVh), null, '0.3'),
     urlEntry(absoluteUrl(STATIC_ROUTES.sondage), null, '0.3'),

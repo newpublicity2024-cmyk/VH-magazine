@@ -14,11 +14,11 @@ export const metadata: Metadata = buildMetadata({
 
 export default function SondagePage() {
   return (
-    <div className="vh-container py-6">
+    <div className="vh-container pt-8 lg:pt-12">
       <Breadcrumbs items={[{ label: 'Accueil', href: '/' }, { label: 'Sondage', href: STATIC_ROUTES.sondage }]} />
-      <div className="mx-auto max-w-3xl">
-        <h1 className="font-display text-3xl font-bold text-ink">Sondage VH Magazine</h1>
-        <p className="mt-4 text-[15px] leading-relaxed text-ink-soft/90">
+      <div className="mx-auto max-w-[45rem]">
+        <h1 className="type-h1-page text-ink">Sondage VH Magazine</h1>
+        <p className="type-copy mt-6 text-ink-2">
           Le sondage sera publié ici prochainement. Merci de votre intérêt.
         </p>
       </div>

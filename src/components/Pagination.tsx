@@ -1,8 +1,8 @@
 import Link from 'next/link'
 
 /**
- * Server-rendered pagination (spec §7). Real <a href> links, not buttons, so
- * pages are crawlable and each has a shareable URL.
+ * Server-rendered pagination (spec §7, DESIGN-SPEC-R3 §4.9): real links, so pages are
+ * crawlable and shareable; 40 px squares (D2-A), the current page filled with ink.
  */
 export function Pagination({
   page,
@@ -15,51 +15,60 @@ export function Pagination({
 }) {
   if (totalPages <= 1) return null
 
-  // A window around the current page — 8,170 articles would otherwise render
-  // ~680 links on a category page.
+  // A window around the current page — 8,000 articles would otherwise render ~680 links.
   const from = Math.max(1, page - 2)
   const to = Math.min(totalPages, page + 2)
   const pages = []
   for (let i = from; i <= to; i += 1) pages.push(i)
 
-  const cls = 'border px-3 py-1.5 text-[12px] transition-colors'
+  const cell =
+    'type-copy-sm inline-flex h-10 min-w-10 items-center justify-center px-3 tabular-nums transition-colors'
+  const idle = `${cell} text-ink hairline-box hover:bg-canvas-2`
 
   return (
-    <nav data-pagination aria-label="Pagination" className="mt-8 flex justify-center">
-      <ul className="flex flex-wrap items-center gap-1.5">
+    <nav data-pagination aria-label="Pagination" className="mt-12 flex justify-center">
+      <ul className="flex flex-wrap items-center gap-2">
         {page > 1 ? (
           <li>
-            <Link rel="prev" href={hrefFor(page - 1)} className={`${cls} border-rule hover:border-ink`}>
-              Précédent
+            <Link rel="prev" href={hrefFor(page - 1)} className={`${idle} gap-1`}>
+              <span aria-hidden="true">‹</span> Précédent
             </Link>
           </li>
         ) : null}
 
         {from > 1 ? (
           <li>
-            <Link href={hrefFor(1)} className={`${cls} border-rule hover:border-ink`}>1</Link>
+            <Link href={hrefFor(1)} className={idle}>
+              1
+            </Link>
           </li>
         ) : null}
-        {from > 2 ? <li aria-hidden="true" className="px-1 text-meta">…</li> : null}
+        {from > 2 ? (
+          <li aria-hidden="true" className="px-1 text-meta">
+            …
+          </li>
+        ) : null}
 
         {pages.map((n) => (
           <li key={n}>
             <Link
               href={hrefFor(n)}
               aria-current={n === page ? 'page' : undefined}
-              className={`${cls} ${
-                n === page ? 'border-ink bg-ink text-white' : 'border-rule hover:border-ink'
-              }`}
+              className={n === page ? `${cell} bg-ink font-semibold text-white` : idle}
             >
               {n}
             </Link>
           </li>
         ))}
 
-        {to < totalPages - 1 ? <li aria-hidden="true" className="px-1 text-meta">…</li> : null}
+        {to < totalPages - 1 ? (
+          <li aria-hidden="true" className="px-1 text-meta">
+            …
+          </li>
+        ) : null}
         {to < totalPages ? (
           <li>
-            <Link href={hrefFor(totalPages)} className={`${cls} border-rule hover:border-ink`}>
+            <Link href={hrefFor(totalPages)} className={idle}>
               {totalPages}
             </Link>
           </li>
@@ -67,8 +76,8 @@ export function Pagination({
 
         {page < totalPages ? (
           <li>
-            <Link rel="next" href={hrefFor(page + 1)} className={`${cls} border-rule hover:border-ink`}>
-              Suivant
+            <Link rel="next" href={hrefFor(page + 1)} className={`${idle} gap-1`}>
+              Suivant <span aria-hidden="true">›</span>
             </Link>
           </li>
         ) : null}

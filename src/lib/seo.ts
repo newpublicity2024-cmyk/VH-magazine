@@ -24,13 +24,26 @@ export function absoluteUrl(path: string): string {
   return `${SITE_URL}${withTrailingSlash(path)}`
 }
 
+/**
+ * Make a FILE's URL absolute — an image, a logo, a media upload — never adding a slash.
+ *
+ * `absoluteUrl` is for pages: it appends the trailing slash `trailingSlash: true` serves.
+ * On a file that produced `/vh-logo.svg/` and `/api/media/file/x.jpg/`, which Next answers
+ * with a 308 that strips the slash, so JSON-LD pointed at redirects (gate GATES-LAUNCH L5).
+ * Blob media URLs are already absolute and pass through untouched.
+ */
+export function absoluteFileUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url
+  return `${SITE_URL}/${url.replace(/^\/+/, '')}`
+}
+
 type MediaLike = { url?: string | null; width?: number | null; height?: number | null } | null
 
 /** Absolute OG image URL, falling back to the site default. */
 export function ogImageUrl(image: MediaLike, fallback?: MediaLike): string | undefined {
   const media = image?.url ? image : (fallback ?? null)
   if (!media?.url) return undefined
-  return /^https?:\/\//i.test(media.url) ? media.url : `${SITE_URL}${media.url}`
+  return absoluteFileUrl(media.url)
 }
 
 type BuildMetaArgs = {

@@ -14,26 +14,56 @@ export const metadata: Metadata = buildMetadata({
   path: STATIC_ROUTES.contact,
 })
 
+/** Contact (DESIGN-SPEC-R3 §5.6): the form beside three canvas-2 cards. */
 export default function ContactPage() {
+  const cards = [
+    {
+      title: 'La rédaction',
+      body: (
+        <address className="not-italic">
+          VH Magazine — Les Éditions de la Gazette
+          <br />
+          Casablanca, Maroc
+        </address>
+      ),
+    },
+    {
+      title: 'Écrire à la rédaction',
+      body: (
+        <a href="mailto:contact@vh.ma" className="vh-text-link">
+          contact@vh.ma
+        </a>
+      ),
+    },
+    {
+      title: 'Publicité',
+      body: (
+        <a href={STATIC_ROUTES.kitMedia} target="_blank" rel="noopener noreferrer" className="vh-text-link">
+          Télécharger le kit média
+        </a>
+      ),
+    },
+  ]
+
   return (
-    <div className="vh-container py-6">
+    <div className="vh-container pt-8 lg:pt-12">
       <Breadcrumbs items={[{ label: 'Accueil', href: '/' }, { label: 'Contact', href: STATIC_ROUTES.contact }]} />
-      <h1 className="font-display text-3xl font-bold text-ink">Contact</h1>
-      <div className="mt-8 grid gap-10 md:grid-cols-2">
-        <div>
-          <SectionTitle title="Écrivez-nous" />
+      <header className="vh-label-rule mb-10">
+        <h1 className="type-h1-page text-ink">Contact</h1>
+      </header>
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section aria-labelledby="contact-form-heading">
+          <SectionTitle title="Écrivez-nous" id="contact-form-heading" />
           <ContactForm />
-        </div>
-        <div>
-          <SectionTitle title="La rédaction" />
-          <address className="space-y-2 text-[14px] not-italic leading-relaxed text-ink-soft/90">
-            <p><strong className="text-ink">VH Magazine</strong><br />Les Éditions de la Gazette</p>
-            <p>Casablanca, Maroc</p>
-            <p>
-              <a href="mailto:contact@vh.ma" className="text-vh-red hover:underline">contact@vh.ma</a>
-            </p>
-          </address>
-        </div>
+        </section>
+        <aside aria-label="Coordonnées" className="space-y-4">
+          {cards.map((c) => (
+            <div key={c.title} className="rounded-panel bg-canvas-2 p-6">
+              <h2 className="type-label text-ink">{c.title}</h2>
+              <div className="type-copy mt-3 text-ink-2">{c.body}</div>
+            </div>
+          ))}
+        </aside>
       </div>
     </div>
   )

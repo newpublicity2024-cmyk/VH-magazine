@@ -1,20 +1,40 @@
 import { notFound, permanentRedirect } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import type { Metadata } from 'next'
 
 import { Breadcrumbs, type Crumb } from '@/components/Breadcrumbs'
 import { JsonLd } from '@/components/JsonLd'
+import { ReadingProgress } from '@/components/ReadingProgress'
 import { RelatedArticles } from '@/components/RelatedArticles'
 import { RichTextBody } from '@/components/RichTextBody'
 import { ShareButtons } from '@/components/ShareButtons'
 import { VideoEmbed } from '@/components/VideoEmbed'
 import { ViewCounter } from '@/components/ViewCounter'
 import { formatDate, isoDate } from '@/lib/format'
+import { readingMinutes } from '@/lib/reading'
 import { getArticleBySlug, getRelatedArticles, getSiteSettings } from '@/lib/queries'
 import { articleUrl, categoryPath, categoryUrl } from '@/lib/routes'
-import { absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
+import { absoluteFileUrl, absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
-import type { Article, Category, Media } from '@/payload-types'
+import { typoFr } from '@/lib/typo-fr'
+import type { Article, Category, Media, Tag } from '@/payload-types'
+
+/**
+ * The lede is shown only when it was written by hand (DESIGN-SPEC-R3 §5.2). Migrated
+ * WordPress excerpts are the opening words of the body, so printing them above the body
+ * would make the reader read the first sentence twice.
+ */
+function isHandwrittenLede(excerpt: string | null | undefined, body: unknown): boolean {
+  if (!excerpt) return false
+  const norm = (t: string) => t.replace(/\s+/g, ' ').replace(/(\[…\]|\[\.\.\.\]|…|\.\.\.)\s*$/, '').trim().toLowerCase()
+  type N = { type?: string; text?: string; children?: N[] }
+  const text = (n: N): string => (n.text ?? '') + (n.children ?? []).map(text).join('')
+  const first = ((body as { root?: N } | null)?.root?.children ?? []).find((n) => n.type === 'paragraph')
+  if (!first) return true
+  const head = norm(excerpt).slice(0, 60)
+  return !norm(text(first)).startsWith(head)
+}
 
 /** Spec §9: articles are static with on-demand revalidation. */
 export const revalidate = 3600
@@ -124,7 +144,7 @@ export default async function ArticlePage({ params }: Params) {
     dateModified: article.updatedAt || article.publishedAt,
     mainEntityOfPage: { '@type': 'WebPage', '@id': absolute },
     url: absolute,
-    image: image?.url ? [absoluteUrl(image.url)] : undefined,
+    image: image?.url ? [absoluteFileUrl(image.url)] : undefined,
     articleSection: category?.name,
     inLanguage: 'fr',
     publisher: {
@@ -145,60 +165,84 @@ export default async function ArticlePage({ params }: Params) {
     })),
   }
 
+  const minutes = readingMinutes(article.body, article.excerpt || '')
+  const tags = (article.tags ?? []).filter((t): t is Tag => typeof t === 'object' && t !== null)
+  const lede = isHandwrittenLede(article.excerpt, article.body) ? article.excerpt : null
+
   return (
-    <article data-article className="vh-container py-6">
+    <article data-article data-source={absolute} className="pt-8 lg:pt-12">
       <JsonLd data={newsArticle} />
       <JsonLd data={breadcrumbList} />
       <ViewCounter articleId={article.id as number} />
+      <ReadingProgress />
 
-      <div className="mx-auto max-w-3xl">
-        <Breadcrumbs items={crumbs} />
+      <div className="vh-container">
+        <header className="mx-auto max-w-[45rem]">
+          <Breadcrumbs items={crumbs} />
 
-        <h1 className="font-display text-3xl font-bold leading-tight text-ink sm:text-4xl">
-          {article.title}
-        </h1>
+          <h1 className="type-h1 text-ink">{typoFr(article.title)}</h1>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-rule pb-4">
-          {category ? (
-            <span className="bg-vh-red px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
-              {category.name}
-            </span>
+          <div className="type-meta mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-meta">
+            {category ? (
+              <Link data-kicker href={categoryUrl(category as never)} className="vh-kicker-pill type-kicker">
+                {category.name}
+              </Link>
+            ) : null}
+            <time data-date dateTime={isoDate(article.publishedAt)}>
+              {formatDate(article.publishedAt)}
+            </time>
+            <span aria-hidden="true">·</span>
+            <span data-reading-time>{typoFr(`${minutes} min de lecture`)}</span>
+          </div>
+
+          <div className="mt-6 pb-6 hairline-b">
+            <ShareButtons url={absolute} title={article.title} />
+          </div>
+        </header>
+
+        <figure className="mx-auto mt-8 max-w-[60rem]">
+          {article.isVideo && article.videoUrl ? (
+            <VideoEmbed url={article.videoUrl} title={article.title} />
+          ) : image?.url ? (
+            <div className="vh-edge bg-canvas-2">
+              <Image
+                src={image.url}
+                alt={image.alt || article.title}
+                width={image.width || 1280}
+                height={image.height || 720}
+                sizes="(min-width: 1024px) 960px, 100vw"
+                priority
+                fetchPriority="high"
+                className="h-auto w-full"
+              />
+            </div>
           ) : null}
-          <time data-date dateTime={isoDate(article.publishedAt)} className="text-[12px] text-meta">
-            {formatDate(article.publishedAt)}
-          </time>
-          <div className="ms-auto">
+        </figure>
+
+        <div className="mx-auto max-w-[45rem]">
+          {lede ? <p className="type-lead mt-8">{typoFr(lede)}</p> : null}
+
+          <div className="mt-8">
+            <RichTextBody data={article.body} />
+          </div>
+
+          {tags.length > 0 ? (
+            <ul aria-label="Mots-clés" className="mt-10 flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <li key={tag.id} className="vh-tag type-copy-sm">
+                  {tag.name}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="mt-10 pt-6 hairline-t">
             <ShareButtons url={absolute} title={article.title} />
           </div>
         </div>
 
-        {article.isVideo && article.videoUrl ? (
-          <div className="mt-6">
-            <VideoEmbed url={article.videoUrl} title={article.title} />
-          </div>
-        ) : image?.url ? (
-          <Image
-            src={image.url}
-            alt={image.alt || article.title}
-            width={image.width || 1280}
-            height={image.height || 720}
-            sizes="(min-width: 1024px) 768px, 100vw"
-            priority
-            fetchPriority="high"
-            className="mt-6 h-auto w-full"
-          />
-        ) : null}
-
-        {article.excerpt ? (
-          <p className="mt-6 text-lg leading-relaxed text-ink-soft/90">{article.excerpt}</p>
-        ) : null}
-
-        <div className="mt-6">
-          <RichTextBody data={article.body} />
-        </div>
+        <RelatedArticles articles={related} />
       </div>
-
-      <RelatedArticles articles={related} />
     </article>
   )
 }

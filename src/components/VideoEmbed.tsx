@@ -3,31 +3,23 @@
 import Image from 'next/image'
 import { useState } from 'react'
 
+import { PlayIcon } from '@/components/icons'
+import { videoId } from '@/lib/youtube'
+
 /**
- * Click-to-load YouTube facade (spec §9: "Replace Instagram/YouTube heavy
- * embeds with lite facades").
- *
- * A YouTube iframe pulls ~1MB of script and sets cookies on page load, whether
- * or not anyone plays the video. This renders the poster image from
- * i.ytimg.com and only mounts the iframe on click, with `youtube-nocookie` so
- * the reader is not tracked before consenting to watch.
+ * Click-to-load YouTube facade (spec §9, DESIGN-SPEC-R3 §4.9): the poster from
+ * i.ytimg.com and a 64 px dark-material play circle; the iframe (youtube-nocookie) mounts
+ * only on click — or at once when `autoPlay` is set by a player that swaps videos in
+ * place (VH TV), since that swap is itself the reader's click.
  */
-const ID_RE =
-  /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
-
-export function videoId(url: string): string | null {
-  const m = ID_RE.exec(url)
-  return m ? m[1] : null
-}
-
-export function VideoEmbed({ url, title = 'Vidéo' }: { url: string; title?: string }) {
-  const [playing, setPlaying] = useState(false)
+export function VideoEmbed({ url, title = 'Vidéo', autoPlay = false }: { url: string; title?: string; autoPlay?: boolean }) {
+  const [playing, setPlaying] = useState(autoPlay)
   const id = videoId(url)
   if (!id) return null
 
   if (playing) {
     return (
-      <div data-video-embed className="relative aspect-video w-full">
+      <div data-video-embed className="relative aspect-video w-full bg-band">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1`}
           title={title}
@@ -45,7 +37,7 @@ export function VideoEmbed({ url, title = 'Vidéo' }: { url: string; title?: str
       data-video-facade
       onClick={() => setPlaying(true)}
       aria-label={`Lire la vidéo : ${title}`}
-      className="group relative block aspect-video w-full overflow-hidden"
+      className="vh-card vh-card-media block aspect-video w-full bg-band"
     >
       <Image
         src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
@@ -53,14 +45,11 @@ export function VideoEmbed({ url, title = 'Vidéo' }: { url: string; title?: str
         width={480}
         height={360}
         loading="lazy"
+        data-fade
         className="h-full w-full object-cover"
       />
-      <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/35">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/70 transition-colors group-hover:bg-vh-red">
-          <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6 fill-white" aria-hidden="true">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        </span>
+      <span aria-hidden="true" className="vh-play vh-play-lg">
+        <PlayIcon className="ml-1 h-6 w-6" />
       </span>
     </button>
   )

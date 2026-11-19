@@ -5,24 +5,30 @@ import { useEffect, useState } from 'react'
 import { ArrowUpIcon } from '@/components/icons'
 
 /**
- * Floating "back to top" button (spec §4.3).
- *
- * Hidden until the reader is well down the page, so it never covers content on
- * a short viewport. Respects prefers-reduced-motion by falling back to an
- * instant jump — a smooth scroll across a 14-section homepage is a long
- * animation for someone who asked not to have them.
+ * Back to top (spec §4.3, DESIGN-SPEC-R3 §4.8): a 44 px dark-material circle that fades
+ * and rises in after 600 px of scroll. Rendered always and toggled, so it can animate
+ * out as well as in; hidden, it is neither visible nor focusable. Respects reduced
+ * motion by jumping instead of smooth-scrolling a long page.
  */
 export function BackToTop() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 600)
-    onScroll()
+    let frame = 0
+    const measure = () => {
+      frame = 0
+      setVisible(window.scrollY > 600)
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure)
+    }
+    measure()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
   }, [])
-
-  if (!visible) return null
 
   const toTop = () => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -32,9 +38,13 @@ export function BackToTop() {
   return (
     <button
       type="button"
+      data-back-to-top
+      data-visible={visible}
+      aria-hidden={!visible}
+      tabIndex={visible ? 0 : -1}
       onClick={toTop}
       aria-label="Retour en haut de la page"
-      className="fixed bottom-6 end-6 z-40 flex h-11 w-11 items-center justify-center bg-ink text-white shadow-lg transition-colors hover:bg-vh-red"
+      className="vh-back-to-top"
     >
       <ArrowUpIcon className="h-5 w-5" />
     </button>

@@ -7,17 +7,14 @@ const asMedia = (v: unknown): Media | null =>
   v && typeof v === 'object' && 'url' in (v as Media) ? (v as Media) : null
 
 /**
- * A keyed promo image that links somewhere (spec §6.6).
- *
- * Renders nothing when the banner is absent rather than showing a broken frame:
+ * A keyed promo image that links somewhere (spec §6.6, DESIGN-SPEC-R3 §4.7): image edge,
+ * and on hover a 2 px lift with a soft shadow. Renders nothing when the banner is absent —
  * an unfilled slot should look like no slot, not like a bug.
- * External destinations get rel="noopener" via next/link's default plus the
- * explicit target below.
  */
 export function PromoBanner({
   banner,
   className = '',
-  sizes = '(min-width: 1024px) 320px, 100vw',
+  sizes = '(min-width: 1024px) 300px, 100vw',
 }: {
   banner: Banner | undefined
   className?: string
@@ -32,7 +29,7 @@ export function PromoBanner({
   return (
     <Link
       href={banner.linkUrl || '/'}
-      className={`vh-card vh-card-media group block ${className}`}
+      className={`vh-promo vh-edge bg-canvas-2 ${className}`}
       {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
     >
       <Image
@@ -42,6 +39,7 @@ export function PromoBanner({
         height={image.height || 500}
         sizes={sizes}
         loading="lazy"
+        data-fade
         className="h-auto w-full object-cover"
       />
     </Link>

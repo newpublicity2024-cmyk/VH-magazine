@@ -1,55 +1,30 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 
-import { CloseIcon, MenuIcon } from '@/components/icons'
+import { ChevronDownIcon, CloseIcon, MenuIcon } from '@/components/icons'
 import { SocialLinks } from '@/components/SocialLinks'
 import { PRIMARY_NAV, UTILITY_NAV } from '@/lib/nav'
+import { useOverlay } from '@/lib/use-overlay'
 
 type Social = Partial<Record<'facebook' | 'twitter' | 'instagram' | 'youtube', string | null>>
 
 /**
- * Mobile slide-in drawer (spec §4.2): the full primary nav, the utility links
- * and the socials.
+ * Mobile drawer (spec §4.2, DESIGN-SPEC-R3 §4.3): a full-height dark-material sheet from
+ * the left with the primary nav, "Les Couv's" as an accordion, the utility links and the
+ * socials.
  *
- * The drawer is a modal surface, so it behaves like one: Escape closes it, the
- * background scroll is locked while it is open, focus moves into it on open and
- * returns to the hamburger on close. Without the focus return a keyboard user
- * is dumped at the top of the document every time they close the menu.
- *
- * It is unmounted when closed rather than hidden, so its links never sit in the
- * tab order behind the page — which is also what lets gate G18 assert it is not
- * visible before the hamburger is clicked.
+ * Rendered always and toggled with `inert` + `data-state`, so it slides in over 450 ms
+ * and back out over 320 ms instead of popping (R3-G5), and its links are in the server
+ * HTML. Closed, it is `visibility: hidden` and inert: not visible, not focusable, not in
+ * the accessibility tree — which is what G18 checks before the hamburger is pressed.
  */
 export function MobileDrawer({ social }: { social?: Social | null }) {
-  const [open, setOpen] = useState(false)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', onKeyDown)
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    panelRef.current?.focus()
-
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = previousOverflow
-    }
-  }, [open])
-
-  const close = () => {
-    setOpen(false)
-    triggerRef.current?.focus()
-  }
+  const { open, setOpen, close, surfaceRef, triggerRef } = useOverlay<HTMLDivElement>()
+  const [couvs, setCouvs] = useState(false)
+  const stagger = (i: number) => ({ '--i': Math.min(i, 8) }) as CSSProperties
 
   return (
     <>
@@ -58,101 +33,103 @@ export function MobileDrawer({ social }: { social?: Social | null }) {
         data-drawer-trigger
         type="button"
         aria-expanded={open}
+        aria-controls="vh-drawer"
         aria-label="Ouvrir le menu"
         onClick={() => setOpen(true)}
-        className="p-2 text-ink transition-colors hover:text-vh-red lg:hidden"
+        className="vh-icon-button-dark lg:hidden"
       >
         <MenuIcon className="h-6 w-6" />
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-[100] lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={close}
-            aria-hidden="true"
-          />
+      <div data-drawer-root data-state={open ? 'open' : 'closed'} inert={!open} className="vh-overlay lg:hidden">
+        <div className="vh-scrim vh-scrim-drawer" onClick={close} aria-hidden="true" />
 
-          <div
-            ref={panelRef}
-            data-drawer
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menu"
-            tabIndex={-1}
-            className="absolute inset-y-0 start-0 flex w-[86%] max-w-sm flex-col overflow-y-auto bg-white outline-none"
-          >
-            <div className="flex items-center justify-between border-b border-rule px-4 py-3">
-              <span className="font-display text-sm font-bold uppercase tracking-[0.08em]">Menu</span>
-              <button
-                data-drawer-close
-                type="button"
-                aria-label="Fermer le menu"
-                onClick={close}
-                className="p-1 text-ink transition-colors hover:text-vh-red"
-              >
-                <CloseIcon className="h-6 w-6" />
-              </button>
-            </div>
+        <div
+          ref={surfaceRef}
+          id="vh-drawer"
+          data-drawer
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
+          tabIndex={-1}
+          className="vh-drawer outline-none"
+        >
+          <div className="flex h-14 shrink-0 items-center justify-between px-4 hairline-dark-b">
+            <Image src="/vh-logo-white.svg" alt="" width={236} height={64} loading="lazy" className="h-7 w-auto" />
+            <button
+              data-drawer-close
+              type="button"
+              aria-label="Fermer le menu"
+              onClick={close}
+              className="vh-icon-button-dark"
+            >
+              <CloseIcon className="h-6 w-6" />
+            </button>
+          </div>
 
-            <nav aria-label="Navigation principale (mobile)" className="px-4 py-4">
-              <ul className="space-y-1">
-                {PRIMARY_NAV.map((item) => (
-                  <li key={item.label}>
-                    {item.href ? (
-                      <Link
-                        href={item.href}
-                        onClick={close}
-                        className="block py-2 text-sm font-semibold uppercase tracking-[0.06em] text-ink"
+          <nav aria-label="Navigation principale (mobile)" className="px-6 pt-2">
+            <ul>
+              {PRIMARY_NAV.map((item, i) => (
+                <li key={item.label} className="vh-drawer-item" style={stagger(i)}>
+                  {item.children?.length ? (
+                    <>
+                      <button
+                        type="button"
+                        aria-expanded={couvs}
+                        aria-controls="vh-drawer-couvs"
+                        onClick={() => setCouvs((v) => !v)}
+                        className="vh-drawer-row type-nav vh-drawer-nav w-full text-left text-night-ink"
                       >
                         {item.label}
-                      </Link>
-                    ) : (
-                      <span className="block py-2 text-sm font-semibold uppercase tracking-[0.06em] text-ink">
-                        {item.label}
-                      </span>
-                    )}
-
-                    {item.children?.length ? (
-                      <ul className="mb-2 ms-3 space-y-1 border-s border-rule ps-3">
+                        <ChevronDownIcon className="vh-chevron h-5 w-5 text-night-ink-2" />
+                      </button>
+                      <ul id="vh-drawer-couvs" hidden={!couvs} className="py-2 hairline-dark-b">
                         {item.children.map((child) => (
                           <li key={child.label}>
                             <Link
                               href={child.href || '/'}
                               onClick={close}
-                              className="block py-1.5 text-[12px] leading-snug text-meta"
+                              className="type-copy block py-3 text-night-ink-2 transition-colors hover:text-white"
                             >
                               {child.label}
                             </Link>
                           </li>
                         ))}
                       </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            <div className="mt-auto border-t border-rule px-4 py-4">
-              <ul className="space-y-1.5">
-                {UTILITY_NAV.map((item) => (
-                  <li key={item.label}>
+                    </>
+                  ) : (
                     <Link
                       href={item.href || '/'}
                       onClick={close}
-                      {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                      className="block text-[11px] uppercase tracking-[0.06em] text-meta"
+                      className="vh-drawer-row type-nav vh-drawer-nav text-night-ink transition-colors hover:text-white"
                     >
                       {item.label}
                     </Link>
-                  </li>
-                ))}
-              </ul>
-              <SocialLinks social={social} className="mt-4 text-ink" iconClassName="h-5 w-5" />
-            </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="mt-auto px-6 pt-8 pb-8">
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {UTILITY_NAV.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href || '/'}
+                    onClick={close}
+                    {...(item.external ? { target: '_blank', rel: 'noopener noreferrer', prefetch: false } : {})}
+                    className="type-micro text-night-ink-2 transition-colors hover:text-white"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <SocialLinks social={social} className="mt-8 gap-5 text-night-ink" iconClassName="h-5 w-5" />
           </div>
         </div>
-      ) : null}
+      </div>
     </>
   )
 }

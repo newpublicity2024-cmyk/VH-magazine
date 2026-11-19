@@ -1,5 +1,6 @@
 import * as migration_20260831_003321_initial_schema from './20260831_003321_initial_schema'
 import * as migration_20260831_003322_search_vector from './20260831_003322_search_vector'
+import * as migration_20261105_160427_media_legacy_fields from './20261105_160427_media_legacy_fields'
 
 /**
  * Order matters and is NOT derived from the filenames — Payload runs this array
@@ -17,5 +18,11 @@ export const migrations = [
     up: migration_20260831_003322_search_vector.up,
     down: migration_20260831_003322_search_vector.down,
     name: '20260831_003322_search_vector',
+  },
+  // Round 2b: WordPress media import keys (Media.legacyPath / legacyWpId).
+  {
+    up: migration_20261105_160427_media_legacy_fields.up,
+    down: migration_20261105_160427_media_legacy_fields.down,
+    name: '20261105_160427_media_legacy_fields',
   },
 ]
