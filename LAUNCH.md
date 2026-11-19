@@ -1,100 +1,128 @@
 # VH Magazine — what is left before launch
 
 Launch = the real vh.ma archive served by this app on the vh.ma domain.
-Recorded 2026-11-17. Details live in `CLAUDE.md` (session state) and, for the migration,
-`/Users/mc/work/hostinger-ftp/migration/PLAN.md` (sections "Open" and "2026-11-17").
+Rewritten 2026-11-19 after the first production deployment with a database. Details: `CLAUDE.md`
+(session state), `GATES-FINISH.md` (this pass), and for the migration
+`/Users/mc/work/hostinger-ftp/migration/PLAN.md` + `GATES-P6.md`.
 
-## Where it stands
+## Where it stands (2026-11-19)
 
-- Design: round 3 **approved by the owner** (2026-11-17). Ledger `GATES.md` 61/62; the one
-  open gate is R3-G3, the logo SVGs.
-- Migration, all local: 8,121 articles, 130 categories, 27,946 tags, 36,177 redirects in
-  `vh_migration`; 31,131 media originals in Vercel Blob and on the local staging disk.
-- Live vh.ma, measured 2026-11-17 12:16 UTC: 8,348 published posts = 8,146 articles + 202
-  magazine issues. Gap to the DB: 18 articles published after the 11-11 survey, 7 held for
-  their post-inventory hero image, the 202 issues (owner decision). No unexplained miss.
-  Re-measure: `node tools/compare-live-posts.mjs` in the migration folder.
-- Launch engineering (2026-11-17, `GATES-LAUNCH.md`): steps 5 and 7 done except the 404 body
-  (L4 abandoned, handoff) and post 47196. Re-run from reset on that build: `GATES.md` 60/61
-  runnable (R3-G3), `GATES-LAUNCH.md` 7/7, migration P4 9/9 and P5-import 8/8 — RUN lines = gates
-  in each. Uncommitted on `design/round-3` until the user asks for a commit.
-- GitHub holds only rounds 1–2a: local `main` is one commit ahead of `origin/main`, and the
-  round-2b/3 branches were never pushed. Nothing is in Neon; DNS is untouched.
+- **Production** (`vh-magazine-iota.vercel.app`, main @ 79c4396, built 09:47 UTC) serves the seed
+  demo from Neon branch `production` (34 articles, 47 media, 4 issues, 1 user) — the first build
+  that ever had a database. Checked route by route (`scripts/verify-deployed.mjs`, GATES-FINISH F2).
+  Fixed there today: the public default admin password worked (rotated → `production-admin.txt`,
+  F3) and every image was a 404 (the seed's 282 files uploaded to Blob, F10).
+- **The code on `launch/post-merge` is ahead of production** (not pushed): body search, ISR
+  articles, magazine issues, WordPress pagination redirects, the push tool. Production gets it
+  only when it is pushed to `main` (Vercel builds `main`).
+- **Archive** (local `vh_migration`, P6 rehearsal 2026-11-19): see "Numbers" below.
+- Design: round 3 approved by the owner (2026-11-17).
+- **Ledgers, all re-run from a reset on 2026-11-19 (RUN lines = runnable gates in each):**
+  `GATES.md` 61/62 (R3-G3 logos open) · `GATES-FINISH.md` 13/13 · `GATES-LAUNCH.md` 7/7 + L4
+  abandoned (handoff) · migration P1 7/7, P3 7/8 (G7: the one orphan blob), P4 9/9, P5-rest 7/7,
+  P5-convert 7/7, P5-import 8/8, P6 2/2.
 
-## Owner inputs
+## Needs you or the owner — in order of urgency
 
-- [ ] **Logo SVGs** — blue-on-white, white-on-black, compact "VH" mark (R3-G3; drop them in
-      `public/` under the same names, re-run R3-G3, then the full ledger).
-- [ ] **Magazine issues** — 202 `sommaire` posts carry 150 distinct issue numbers; the app's
-      issue number is unique. Merge, renumber, or skip.
-- [ ] **Hotlinked images** — 467 images in 170 posts live on other sites (challenge.ma,
-      old.vh-magazine.com, Facebook CDN…): copy into Media, embed as-is, or keep as links.
-- [ ] **Search** — only 110 articles keep an excerpt, so search matches titles for the rest;
-      indexing body text needs a stored text column.
-- [ ] **Accounts and bylines** — `vh_migration` has 0 users and 0 of 8,121 articles with an
-      author (WordPress has 23 authors). Who gets admin/editor logins; carry bylines or not.
-- [ ] **View counts, drafts, old video URLs** — only in the WordPress DB: allowlist an IP
-      (this Mac's rotates daily) or provide a phpMyAdmin export; otherwise "Les plus lus"
-      starts from zero.
-- [ ] **Security, urgent regardless of launch** — five public DB dumps (2023-10-03, ~1.7 GB)
-      in `/public_html/dbsofvh/` on the live server; raised 2026-11-05, unanswered. Delete them.
-- [ ] Optional: tell the owner about C5 (no global smooth scroll) — a deviation, never shown.
+1. **Delete the public database dumps — urgent, independent of launch.** `/public_html/dbsofvh/`
+   on the live server holds five WordPress dumps from October 2023 (~1.7 GB:
+   `vh20231003.sql`, `db-vhnew.sql`, `backup-database-26-09-23-20h25.sql`,
+   `backup_database_no_tablespace_26_09_23_20h25.sql`, `vh.20231003.sql.gz`). Re-measured
+   2026-11-19: still there, and `https://www.vh.ma/dbsofvh/vh.20231003.sql.gz` answers 200 to
+   anyone (54 MB). Raised 2026-11-05. The migration's FTP tools are read-only by design.
+2. **Make the GitHub repository private** (`newpublicity2024-cmyk/VH-magazine` is public). It
+   carries CLAUDE.md with the dev seed's admin login (no longer valid on production) and the
+   whole migration's internals.
+3. **Go-ahead: push `launch/post-merge` to GitHub and merge to `main`** — this deploys the new
+   code to production (the build runs migration `20261119_120000_search_body` on the Neon
+   production branch).
+4. **Go-ahead: LAUNCH step 3, the archive push** (one command, rehearsed — below). Replaces every
+   table of Neon branch `production` (today the seed demo) with `vh_migration`; the admin
+   account in `production-admin.txt` is re-created so the login keeps working.
+5. **Vercel env `MEDIA_ORIGIN` (Production) is empty** — measured: an unknown legacy upload
+   answers 404 instead of 302. Set it to `https://www.vh.ma` now; at cutover, to the old
+   server's other name (step 6).
+6. **Logo SVGs** — blue-on-white, white-on-black, compact "VH" mark (R3-G3; drop them in
+   `public/` under the same names).
+7. **Accounts** — who gets an admin/editor login. Once the archive is pushed, the admin creates
+   them in `/admin` → Utilisateurs. Bylines: WordPress has 23 authors, none carried (the live
+   site now refuses `/wp-json/wp/v2/users`).
+8. **View counts, drafts, old video URLs** — only in the WordPress DB: allowlist an IP for
+   Remote MySQL (this Mac's rotates daily) or drop a phpMyAdmin export into the migration
+   folder; otherwise "Les plus lus" starts from zero.
+9. **Cutover plan** — who changes vh.ma's DNS, when, and a short publishing freeze for the final
+   sync.
+10. Housekeeping: delete `vercel-production-env.txt` once `PAYLOAD_SECRET` is in a password
+    manager (Vercel will not show it again); keep `production-admin.txt` the same way.
+11. Optional: C5 (no global smooth scroll) was never shown to the owner; post 47196 duplicates
+    47831 (could 301 to it); 404 pages render their body after hydration (status is correct;
+    a server-rendered body needs `cacheComponents` — GATES-LAUNCH L4).
 
-## Engineering (steps marked * need an explicit go-ahead)
+Decided 2026-11-19 (relayed by the user): magazine issues **imported** (200 issues from 202
+posts), hotlinked images **kept as links**, search **covers article bodies**.
 
-1. [x] **Merged 2026-11-19**: `design/round-3` → `main` (PR #1, merge commit 79c4396). Before
-       the push, Preview got its own database — Neon branch `preview` (br-proud-lab-b1tqailj, a
-       copy of the prototype DB) — and its own `PAYLOAD_SECRET`; the preview build migrated that
-       branch only and served home, category, article, VH TV, Les Unes, search, sitemap, robots
-       and admin login (200), 404 on an unknown path, noindex on its host; the deployed optimizer
-       serves this Blob store as AVIF and refuses another (400). The Blob token on Vercel has
-       the right form. Preview shares the production Blob store: a preview-admin upload lands in it.
-   [ ] **Production has never had a database.** Its `DATABASE_URL` and `PAYLOAD_SECRET` are
-       empty (production build logs 2026-08-31 and 2026-11-19: "Skipping migrations … not set"),
-       so the production deployment serves empty shells. `NEXT_PUBLIC_SERVER_URL` and
-       `MEDIA_ORIGIN` look empty too (canonicals fall back to https://vh.ma; an unknown legacy
-       upload 404s instead of redirecting). Set them* — DEPLOY.md values: server URL and media
-       origin `https://www.vh.ma` — then redeploy; the build then migrates the production branch.
-2. [ ] **Final sync (P6), last thing before launch**: posts and uploads published since the
-       survey, plus the 7 held articles — re-run the REST survey, FTP delta of uploads after
-       2026-11-05, convert, import (re-runs converge), then `import-page-redirects.ts` (it
-       refuses to run while a newly published WordPress page has no decision in
-       `src/migrate/wp-pages.ts`). Ideally behind a short publishing freeze.
-3. [ ] Push `vh_migration` to Neon* (full replace); create the real accounts; change the
-       default admin password.
-4. [ ] Verify on Vercel with the real data: `/wp-content/uploads/*` → Blob, the 36k-row
-       redirects, sitemaps, article pages — the prototype has only ever served seed data.
-       First check on that deploy: the Blob token. The API reports it as type `encrypted` (the
-       CLI's `eyJ2…` was the encrypted envelope, not the value); Payload's adapter needs the
-       `vercel_blob_rw_…` form and throws at boot otherwise — the first preview build shows it,
-       since the build loads the Payload config. Images do not depend on it (host pinned).
-5. [x] **Image serving decided (2026-11-17, GATES-LAUNCH L6)**: direct Blob URLs
-       (`disablePayloadAccessControl`) — the 229 migrated videos/audio files (2.5 GB, up to
-       81 MB) no longer stream through a function, and Blob serves byte ranges. Next's
-       optimizer stays for images, now restricted to this store (the wildcard let anyone bill
-       transformations to us). Quota: ~20.6k distinct images in use; worst case every srcset
-       width in AVIF and WebP ≈ 330k transformations ≈ $17 once at Pro list prices, then cached
-       for the Blob objects' one-year max-age; realistic ≈ $2. Not a launch concern.
-6. [ ] Cutover*: point `MEDIA_ORIGIN` at the old server under another name before switching
-       DNS (else late uploads 404 — loop guard); keep the old WordPress up; submit sitemaps;
-       watch 404s.
-7. Smaller (2026-11-17, `GATES-LAUNCH.md`):
-   - [x] `middleware.ts` → `src/proxy.ts` (L3): the build no longer warns; it now runs on
-         the Node.js runtime.
-   - [x] The 29 WordPress pages (L7): 6 served by app routes, 8 redirected (old front pages →
-         `/`, Who's who and Les visages de VH → their categories, Chroniques → `/category/chronique/`,
-         Lisez gratuitement → `/magazine-maroc/`), 15 gone (theme demos, empty shells).
-         Decisions in `src/migrate/wp-pages.ts`; redirects in `vh_migration` (36,185 rows).
-   - [ ] **404 responses have no server-rendered body — handoff (L4 abandoned).** Not fixable
-         on Next 16.2.6 without `cacheComponents` (a caching refactor of the whole app):
-         Next renders a page-thrown `notFound()` as its empty error shell; `global-not-found`
-         was built, measured and reverted — it serves only unmatched URLs, and the root
-         catch-all matches every URL. Status stays 404; the designed page appears after
-         hydration (R3-G16).
-   - [ ] Post 47196 (a shorter duplicate of 47831) could 301 to its twin — content decision.
-   - [x] Found on the way: the admin import map lacked the Blob adapter's client-upload
-         handler (L2; uploads on Vercel would have hit the 4.5 MB function limit), and JSON-LD
-         image/logo URLs pointed at 308 redirects (L5).
+## Engineering
 
-Critical path: logos + accounts → 1 → 2 → 3 → 4 → 6. The three content decisions can default
-to "keep links, titles-only search, skip issues" if speed matters more.
+1. [x] Merged round 3 (PR #1, 2026-11-19). [x] Production env `DATABASE_URL`/`PAYLOAD_SECRET`
+       set by the user; the 09:47 build migrated Neon `production`. [ ] `MEDIA_ORIGIN` (above).
+2. [x] **Final sync rehearsed (P6, 2026-11-19, `GATES-P6.md`)** — the launch-day pass is the
+       same commands, run behind a publishing freeze:
+       ```
+       cd /Users/mc/work/hostinger-ftp/migration
+       python3 -I tools/p6_delta_inventory.py --merge        # upload folders changed since
+       python3 -I tools/stage_media.py --select && python3 -I tools/stage_media.py --download
+       (VH) import-media.ts --dir <migration>                # token from .secrets/blob.env
+       node tools/wprest-survey.mjs categories tags pages posts media   # ~45 min
+       node tools/wprest-convert.mjs
+       (VH) import-articles.ts, import-page-redirects.ts, import-issues.ts   # DATABASE_URL=vh_migration
+       node tools/verify-p6.mjs                              # every surveyed post is in vh_migration
+       ```
+3. [ ] **Push the archive to Neon** (go-ahead) — rehearsed by GATES-FINISH F7:
+       ```
+       TARGET_DATABASE_URL=<Neon production branch, pooled> \
+         pnpm tsx src/migrate/push-archive.ts --confirm <its host> --admin-file production-admin.txt
+       ```
+       One transaction (all or nothing), row counts of every table checked against
+       `vh_migration`, admin re-created. Then redeploy (the pages prerendered at build time —
+       home, VH TV, Les Unes… — carry the build's database). Afterwards remove the seed's 282
+       Blob files (`manifests/seed-blob-uploads.jsonl`) or keep them; they cost nothing.
+4. [ ] **Verify on Vercel with the real data**: `node scripts/verify-deployed.mjs --base
+       https://vh-magazine-iota.vercel.app --canonical https://www.vh.ma --media-origin
+       https://www.vh.ma` (sitemap-driven: articles of both depths, categories, issues, search,
+       legacy uploads, optimizer, admin); add `--redirects-db postgres://localhost/vh_migration
+       --redirects-sample 2000` to replay a spread of the 36k redirect rows against it.
+5. [x] Image serving decided (2026-11-17, GATES-LAUNCH L6): direct Blob URLs; optimizer limited
+       to this store.
+6. [ ] **Cutover** (go-ahead): point `MEDIA_ORIGIN` at the old server under another name before
+       switching DNS (else late uploads 404 — loop guard); keep the old WordPress up; add vh.ma
+       and www.vh.ma to the Vercel project; switch DNS; submit `sitemap.xml` and
+       `news-sitemap.xml` in Search Console; watch 404s (Vercel logs) for a week. After DNS
+       moves, `verify-deployed.mjs --base https://www.vh.ma --canonical https://www.vh.ma`
+       (indexable, no noindex header).
+7. [x] Smaller items (2026-11-17, `GATES-LAUNCH.md`): proxy rename, the 29 WordPress pages,
+       import map, JSON-LD URLs. [ ] L4 (404 body) — handoff, see owner item 11.
+8. [x] **Found and fixed 2026-11-19** (`GATES-FINISH.md`): articles were rendered on every
+       request (no ISR route; ~1 s per view) — now cached, purged by the publish hook;
+       WordPress's `/page/N/` archive URLs would have 404'd — now 301 to the listings; search
+       covers bodies; 200 magazine issues imported (LAUNCH's earlier "150 distinct numbers" was
+       a parsing error).
+
+Critical path: dumps deleted (now) → push + merge (go-ahead) → final sync (P6, freeze) → archive
+push (go-ahead) → verify on Vercel → logos + accounts → cutover.
+
+## Numbers (measured 2026-11-19)
+
+| | Live vh.ma (REST survey 10:18–10:54 UTC) | Local `vh_migration` after the P6 rehearsal |
+|---|---|---|
+| Articles | 8,147 published posts outside `/sommaire/` | 8,147 (26 added today: 19 new, 7 that waited for their hero image) |
+| Magazine issues | 202 `/sommaire/` posts | 200 issues (N°60 and N°190 each merge two posts) |
+| Media | 28,331 items (28,017 visible) | 31,231 rows (+100 today) + 167 raw newsletters, all in Blob |
+| Categories / tags | 131 / 29,064 | 130 / 27,979 (the tags articles use) |
+| Redirects | — | 36,448 (`/?p=`, tag archives, re-slugs, 8 pages, 204 issue redirects) |
+| Users | 23 authors (endpoint now 403) | 0 — the push re-creates the admin |
+| Size | — | 195 MB (Neon) · Blob store 154,731 objects ≈ 22 GB |
+
+Uploads delta since the P1 inventory (2026-11-05): 884 files in `uploads/2026/11/`, 106 originals
+staged, 100 Media rows + 1 newsletter imported. One leftover Blob object from a renamed upload
+(`rabat.jpg`, 214 KB) awaits `blob-orphans.ts --delete` (blocked by the session's permission
+classifier — run it, or approve it).
