@@ -13,7 +13,8 @@ import config from '../payload.config'
  *   pnpm tsx src/migrate/blob-orphans.ts --dir <migration dir> --delete   remove them
  *
  * Expected objects: every Media row's file and size variants, plus the raw legacy
- * newsletters recorded in <dir>/manifests/import-raw.jsonl. Anything else in the
+ * newsletters recorded in <dir>/manifests/import-raw.jsonl and the production demo's seed
+ * images recorded in <dir>/manifests/seed-blob-uploads.jsonl. Anything else in the
  * store is an orphan — typically the half of a create that failed after uploading.
  *
  * Run --delete only while no import is running: an object uploaded a moment before
@@ -47,6 +48,15 @@ async function main() {
   if (existsSync(rawFile)) {
     for (const l of readFileSync(rawFile, 'utf8').split('\n').filter(Boolean)) {
       expected.add(`legacy/${(JSON.parse(l) as { legacyPath: string }).legacyPath}`)
+    }
+  }
+
+  // The production demo's seed images (upload-seed-media.ts, 2026-11-19): referenced by the
+  // Neon production branch, not by vh_migration. Expected until the archive replaces the seed.
+  const seedFile = path.join(dir, 'manifests', 'seed-blob-uploads.jsonl')
+  if (existsSync(seedFile)) {
+    for (const l of readFileSync(seedFile, 'utf8').split('\n').filter(Boolean)) {
+      expected.add((JSON.parse(l) as { pathname: string }).pathname)
     }
   }
 

@@ -54,3 +54,5 @@ vercel-production-env.txt
 /*.png
 .g??-driver.mts
 probe-*.mts
+# Production admin credential (rotated 2026-11-19; local only)
+production-admin.txt
