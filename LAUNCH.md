@@ -42,20 +42,19 @@ Recorded 2026-11-17. Details live in `CLAUDE.md` (session state) and, for the mi
 
 ## Engineering (steps marked * need an explicit go-ahead)
 
-1. [ ] Merge `design/round-3` (carries `migration/media-import` and the 2026-11-17 fixes) into
-       `main` and push*. `main` cannot build today (Google Fonts, see CLAUDE.md landmines).
-       **Before any push, decide where preview builds migrate**: Vercel Preview has
-       `DATABASE_URL` set (`vercel env ls`, 2026-11-17), and every build runs
-       `payload migrate` — so pushing ANY branch applies its migrations (Media `legacyPath` /
-       `legacyWpId`, …) to that database, the production Neon one if Preview shares it. Give
-       Preview its own database (a Neon branch) first, or accept that the schema moves early.
-       **Done 2026-11-17:** Neon branch `preview` (br-proud-lab-b1tqailj, a copy of the
-       prototype DB: 34 articles, migrations up to 20260831_003322) is Preview's `DATABASE_URL`;
-       the original variable is Production-only. The push is still to do: `origin` now carries
-       the account username like the sister repos (it fell back to the Ben776ya credential and got
-       403), and the push needs the newpublicity2024-cmyk credential typed once in a terminal.
-       Preview still shares the production Blob store (`BLOB_READ_WRITE_TOKEN`): an upload made in a
-       preview admin lands in it.
+1. [x] **Merged 2026-11-19**: `design/round-3` → `main` (PR #1, merge commit 79c4396). Before
+       the push, Preview got its own database — Neon branch `preview` (br-proud-lab-b1tqailj, a
+       copy of the prototype DB) — and its own `PAYLOAD_SECRET`; the preview build migrated that
+       branch only and served home, category, article, VH TV, Les Unes, search, sitemap, robots
+       and admin login (200), 404 on an unknown path, noindex on its host; the deployed optimizer
+       serves this Blob store as AVIF and refuses another (400). The Blob token on Vercel has
+       the right form. Preview shares the production Blob store: a preview-admin upload lands in it.
+   [ ] **Production has never had a database.** Its `DATABASE_URL` and `PAYLOAD_SECRET` are
+       empty (production build logs 2026-08-31 and 2026-11-19: "Skipping migrations … not set"),
+       so the production deployment serves empty shells. `NEXT_PUBLIC_SERVER_URL` and
+       `MEDIA_ORIGIN` look empty too (canonicals fall back to https://vh.ma; an unknown legacy
+       upload 404s instead of redirecting). Set them* — DEPLOY.md values: server URL and media
+       origin `https://www.vh.ma` — then redeploy; the build then migrates the production branch.
 2. [ ] **Final sync (P6), last thing before launch**: posts and uploads published since the
        survey, plus the 7 held articles — re-run the REST survey, FTP delta of uploads after
        2026-11-05, convert, import (re-runs converge), then `import-page-redirects.ts` (it

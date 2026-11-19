@@ -13,8 +13,12 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
 - **Round 1 — accepted** (2026-08-30). Spec §11 steps 1–4, gates G1–G19.
 - **Round 2a — built, pushed, deployed; no recorded user acceptance.** Steps 5–7
   (all page types, search, view counter, SEO layer, redirects), gates G20–G39,
-  contract `PLAN-2A.md`. Live as a prototype on Vercel (project `vh-magazine`,
-  team `newpublicitys-projects`) serving the seeded demo content.
+  contract `PLAN-2A.md`. Deployed on Vercel (project `vh-magazine`, team
+  `newpublicitys-projects`) — but **production has never served data**: its `DATABASE_URL` and
+  `PAYLOAD_SECRET` are empty (every production build log, 2026-08-31 and 2026-11-19: "Skipping
+  migrations … not set"; pages are empty shells). The seed lives in Neon project VH-Magazine
+  (`quiet-block-93024667`), branch `production`, put there from this Mac. Preview has its own
+  working `DATABASE_URL` + `PAYLOAD_SECRET` (Neon branch `preview`, 2026-11-19, verified).
 - **Round 2b — in progress**, step 8 (migrate the real vh.ma). Driven from
   `/Users/mc/work/hostinger-ftp/migration/` — its own `PLAN.md` and per-phase
   ledgers `GATES-P*.md`; read that PLAN first. Code lives on branch
@@ -36,8 +40,9 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   vh_magazine holds no gate debris (one stray G35 article and 100 test versions were removed).
 - Still open from round 1: the D4 visual punch list never arrived (R3-G12 now carries it).
 - **Round 3 (design finish) — built 2026-11-12 on branch `design/round-3`, approved by the
-  owner 2026-11-17** (relayed by the user; R3-G12 met). From `migration/media-import`; not
-  pushed, not merged. `DESIGN-SPEC-R3.md` with amendments
+  owner 2026-11-17** (relayed by the user; R3-G12 met). From `migration/media-import`;
+  **merged to `main` 2026-11-19** (PR #1, merge commit 79c4396; pushed with the
+  newpublicity2024-cmyk fine-grained token). `DESIGN-SPEC-R3.md` with amendments
   C1–C5; D1–D8 all accepted as recommended. Full ledger from reset: 60/62 runnable-met
   (2026-11-17, 61 RUN lines for 61 runnable gates), **61/62** with the owner's approval
   (R3-G12, manual). Open: **R3-G3** only — VH's logo SVGs (`public/vh-logo*.svg` and
