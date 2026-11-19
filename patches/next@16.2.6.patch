@@ -1,0 +1,28 @@
+diff --git a/dist/build/templates/app-page.js b/dist/build/templates/app-page.js
+index e0e16e8cdcb98beb66af51c924921b6d2e2fa904..3f7e9e6a22c33e8984d8e1909f76dc8d48faca49 100644
+--- a/dist/build/templates/app-page.js
++++ b/dist/build/templates/app-page.js
+@@ -1088,6 +1088,9 @@ async function handler(req, res, ctx) {
+                 }
+                 for (let [key, value] of Object.entries(headers)){
+                     if (typeof value === 'undefined') continue;
++                    // VH Magazine patch (2026-11-19): an ISR miss that redirects has already set
++                    // Location while rendering; appending the cache entry's copy sent it twice.
++                    if (key.toLowerCase() === 'location' && res.hasHeader('location')) continue;
+                     if (Array.isArray(value)) {
+                         for (const v of value){
+                             res.appendHeader(key, v);
+diff --git a/dist/esm/build/templates/app-page.js b/dist/esm/build/templates/app-page.js
+index 0cec08429603871865933de0a5ae4dd8f0d9a0d3..d89d97c397f88691128a396ca58198b7628349f6 100644
+--- a/dist/esm/build/templates/app-page.js
++++ b/dist/esm/build/templates/app-page.js
+@@ -1079,6 +1079,9 @@ export async function handler(req, res, ctx) {
+                 }
+                 for (let [key, value] of Object.entries(headers)){
+                     if (typeof value === 'undefined') continue;
++                    // VH Magazine patch (2026-11-19): an ISR miss that redirects has already set
++                    // Location while rendering; appending the cache entry's copy sent it twice.
++                    if (key.toLowerCase() === 'location' && res.hasHeader('location')) continue;
+                     if (Array.isArray(value)) {
+                         for (const v of value){
+                             res.appendHeader(key, v);

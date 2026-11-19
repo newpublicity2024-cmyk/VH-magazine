@@ -6,15 +6,36 @@ rebuilt from WordPress + WPBakery. Sister sites: `MFM-sport`, `lallafatema`.
 Source of truth for scope: `vh-magazine-website-spec.md`, `vh_homepage_wireframe.svg`,
 and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
 
-## Session state (2026-11-17)
+## Session state (2026-11-19)
 
 **What is left before launch: `LAUNCH.md`** (owner inputs, engineering steps, critical path).
+
+- **2026-11-19 finishing pass — ledger `GATES-FINISH.md`, branch `launch/post-merge` (uncommitted,
+  not pushed).** Production (`vh-magazine-iota.vercel.app`) had its first database-backed build at
+  09:47 UTC (the user set `DATABASE_URL`/`PAYLOAD_SECRET`); `MEDIA_ORIGIN` is still empty there.
+  Fixed on production directly, with the user's go-ahead: the seed's public default admin password
+  worked (rotated; credential in git-ignored `production-admin.txt`) and every image 404'd (the
+  seed's 282 files uploaded to Blob, recorded in the migration's `manifests/seed-blob-uploads.jsonl`).
+  Built: body search (migration `20261119_120000_search_body`), ISR for articles and issues (+ a
+  pnpm patch of Next, see landmines), 200 magazine issues (`import-issues.ts`), WordPress
+  `/page/N/` redirects in the proxy, the step-3 push tool (`push-archive.ts`, rehearsed), and
+  `scripts/verify-deployed.mjs` for any deployment. P6 rehearsed (migration `GATES-P6.md`).
+  The GitHub repository is PUBLIC; the old WordPress server still serves five public DB dumps.
+  Re-run from a reset that day: `GATES.md` 61/62 (R3-G3), `GATES-FINISH.md` 13/13,
+  `GATES-LAUNCH.md` 7/7 + L4 abandoned; migration P1/P4/P5-*/P6 all met, P3 7/8 (one orphan blob,
+  `rabat.jpg` — `blob-orphans.ts --delete` needs the user's go-ahead).
+  **Payload locks an account for 10 min after 5 failed logins** — never probe a real account
+  with a wrong password from a verifier (it locked production's admin on 2026-11-19).
 
 - **Round 1 — accepted** (2026-08-30). Spec §11 steps 1–4, gates G1–G19.
 - **Round 2a — built, pushed, deployed; no recorded user acceptance.** Steps 5–7
   (all page types, search, view counter, SEO layer, redirects), gates G20–G39,
-  contract `PLAN-2A.md`. Live as a prototype on Vercel (project `vh-magazine`,
-  team `newpublicitys-projects`) serving the seeded demo content.
+  contract `PLAN-2A.md`. Deployed on Vercel (project `vh-magazine`, team
+  `newpublicitys-projects`) — but **production has never served data**: its `DATABASE_URL` and
+  `PAYLOAD_SECRET` are empty (every production build log, 2026-08-31 and 2026-11-19: "Skipping
+  migrations … not set"; pages are empty shells). The seed lives in Neon project VH-Magazine
+  (`quiet-block-93024667`), branch `production`, put there from this Mac. Preview has its own
+  working `DATABASE_URL` + `PAYLOAD_SECRET` (Neon branch `preview`, 2026-11-19, verified).
 - **Round 2b — in progress**, step 8 (migrate the real vh.ma). Driven from
   `/Users/mc/work/hostinger-ftp/migration/` — its own `PLAN.md` and per-phase
   ledgers `GATES-P*.md`; read that PLAN first. Code lives on branch
@@ -36,8 +57,9 @@ and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
   vh_magazine holds no gate debris (one stray G35 article and 100 test versions were removed).
 - Still open from round 1: the D4 visual punch list never arrived (R3-G12 now carries it).
 - **Round 3 (design finish) — built 2026-11-12 on branch `design/round-3`, approved by the
-  owner 2026-11-17** (relayed by the user; R3-G12 met). From `migration/media-import`; not
-  pushed, not merged. `DESIGN-SPEC-R3.md` with amendments
+  owner 2026-11-17** (relayed by the user; R3-G12 met). From `migration/media-import`;
+  **merged to `main` 2026-11-19** (PR #1, merge commit 79c4396; pushed with the
+  newpublicity2024-cmyk fine-grained token). `DESIGN-SPEC-R3.md` with amendments
   C1–C5; D1–D8 all accepted as recommended. Full ledger from reset: 60/62 runnable-met
   (2026-11-17, 61 RUN lines for 61 runnable gates), **61/62** with the owner's approval
   (R3-G12, manual). Open: **R3-G3** only — VH's logo SVGs (`public/vh-logo*.svg` and
@@ -172,6 +194,31 @@ reported something other than what it measured.
   so in `publishedFrom`; the importer converges existing articles' `publishedAt` through
   `payload.update` — never SQL alone, since the admin editor opens the latest *version*.
 
+- **Next 16.2.6 is patched** (`patches/next@16.2.6.patch`, `pnpm-workspace.yaml`
+  patchedDependencies): an ISR miss whose render redirects (`permanentRedirect` for a
+  wrong-category article URL) sent `Location` twice — the render sets it, then the new cache
+  entry's headers are appended — and fetch clients read "X, X" (G21 caught it). The patch skips
+  the appended copy. `connection()` before the redirect is not an alternative: it 500s inside an
+  ISR render. Re-check on any Next upgrade (pnpm refuses to install when the patch no longer applies).
+- **Articles and issues are ISR** (empty `generateStaticParams`; before 2026-11-19 every article
+  rendered per request, `private, no-store`). The publish hook purges everything
+  (`revalidatePath('/', 'layout')`); scripts writing through their own Payload instance purge
+  nothing, but redirects still work because the proxy runs ahead of the page cache. **The ISR
+  cache in `.next` now crosses databases in BOTH directions**: three seed slugs also exist in the
+  archive, and after the `vh_magazine` ledger a `vh_migration` server served the seed's cached
+  pages (P5-import G3, 2026-11-19). Rebuild between a `vh_magazine` HTML run and a `vh_migration`
+  serve run, whichever comes first.
+- **Never wait for Playwright `networkidle` across back-to-back navigations.** A navigation that
+  starts while link prefetches are in flight orphans them and `networkidle` never arrives (G26
+  timed out three runs in a row; the server had answered the same requests in ms). Wait for
+  `load` plus the element you need — `verify-contact.mjs` waits for React's `__reactProps` on the form.
+- **The live site answers `/wp-json/wp/v2/users` with 403** since 2026-11-19 (it did not on 11-11):
+  survey with `wprest-survey.mjs categories tags pages posts media`.
+- **`verify-deployed.mjs --base <url> --canonical https://www.vh.ma`** checks any deployment
+  without a local server (sitemap-driven sample); a protected one needs
+  `VERCEL_AUTOMATION_BYPASS_SECRET`. Production's per-deployment URLs are behind Vercel
+  Authentication; the `vh-magazine-iota.vercel.app` alias is public.
+
 ## Conventions
 
 - Frontend reads Payload through the **Local API** (`getPayloadClient`), never
@@ -224,7 +271,8 @@ reported something other than what it measured.
 ## Commands
 
 ```
-pnpm dev            # localhost:3000, admin at /admin (admin@vh.ma / vhmagazine)
+pnpm dev            # localhost:3000, admin at /admin (admin@vh.ma / vhmagazine — dev seed only;
+                    # production's admin was rotated 2026-11-19: production-admin.txt)
 pnpm seed           # idempotent
 pnpm migrate        # apply pending Payload migrations to DATABASE_URL (push is off)
 pnpm build

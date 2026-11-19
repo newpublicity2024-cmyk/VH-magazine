@@ -13,6 +13,11 @@ import type { Media } from '@/payload-types'
 
 export const revalidate = 3600
 
+/** Render each issue on its first request, then serve it from the ISR cache (see the article route). */
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  return []
+}
+
 type Props = { params: Promise<{ slug: string }> }
 
 const asMedia = (v: unknown): Media | null =>

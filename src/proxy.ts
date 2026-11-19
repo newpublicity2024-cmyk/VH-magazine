@@ -66,6 +66,9 @@ function applyNoindex(response: NextResponse, host: string): NextResponse {
   return response
 }
 
+/** `{base}/page/{n}/` for the home (base ''), a category or a tag archive. */
+const WP_PAGED = /^((?:\/category|\/tag)\/.+?)?\/page\/(\d{1,4})\/?$/
+
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
   const host = request.headers.get('host') || ''
@@ -92,6 +95,22 @@ export async function proxy(request: NextRequest) {
     url.pathname = '/api/legacy-media'
     url.searchParams.set('path', pathname)
     return applyNoindex(NextResponse.rewrite(url), host)
+  }
+
+  // ── WordPress pagination: /page/2/, /category/{path}/page/2/, /tag/{slug}/page/2/ ──
+  // WordPress paginates archives in the path; this site paginates listings with ?page=N
+  // (lib/routes.ts pagedUrl, page 1 bare). The live site answers these URLs 200 (measured
+  // 2026-11-19), so without this every paginated archive a crawler knows would 404 after
+  // cutover. Only the home, category and tag archives — the ones this site has an answer for.
+  const paged = WP_PAGED.exec(pathname)
+  if (paged) {
+    const base = paged[1] ?? ''
+    const page = Number(paged[2])
+    let to: string | null = null
+    if (base === '') to = '/'
+    else if (base.startsWith('/category/')) to = page > 1 ? `${base}/?page=${page}` : `${base}/`
+    else if (base.startsWith('/tag/')) to = (await lookupRedirect(origin, `${base}/`))?.to ?? null
+    if (to) return applyNoindex(NextResponse.redirect(new URL(to, origin), 301), host)
   }
 
   // ── Tag archives: /tag/{slug}/ (B5, populated in 2b) ─────────────────────

@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
   const q = (request.nextUrl.searchParams.get('q') ?? '').trim().slice(0, MAX_CHARS)
   if (q.length < MIN_CHARS) return NextResponse.json({ hits: [] })
 
-  const result = await searchArticles(q, 1, LIMIT)
+  // The panel shows no excerpt, so it skips the per-hit body snippet.
+  const result = await searchArticles(q, 1, LIMIT, { snippets: false })
   const hits = result.hits.map((h) => ({
     id: h.id,
     title: typoFr(h.title),

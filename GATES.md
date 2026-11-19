@@ -47,7 +47,7 @@ The migration itself is gated in the migration workspace
 - [x] G6: The production build completes successfully
   CHECK: pnpm run build && echo BUILD_OK
   EXPECT: BUILD_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=3c88b03a2e37d79f2a29589e1dbed9a39d793cf159127a355a4b4d906daff490; output-bytes=2029
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=f17e9dd6f870a8d3a396c985b880d610c33ea45dc555fb691099759c2d48ec71; output-bytes=2102
 
 - [x] G7: The homepage returns 200 with lang="fr", exactly one h1, and a canonical link equal to NEXT_PUBLIC_SERVER_URL with a single trailing slash
   CHECK: node scripts/verify-home.mjs
@@ -112,7 +112,7 @@ The migration itself is gated in the migration workspace
 - [x] G19: Renaming a published article creates exactly one redirect from its old URL, renaming again repoints that redirect rather than chaining, and renaming an unpublished article creates none — and the run leaves none of its articles, article versions or redirects behind
   CHECK: node scripts/verify-redirects.mjs
   EXPECT: REDIRECTS_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=a9d0d7df833652567843f27a3b2a349583851a122c543cb797cb5f78f532a8a6; output-bytes=322
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=0ea264ff113715c17b115dd80adf999973947faac5ae57566a20506e8de154ca; output-bytes=322
 
 - [x] G20: An article page renders with its title as the single h1, a breadcrumb trail, a DD/MM/YYYY date, the rich-text body and share buttons
   CHECK: node scripts/verify-article.mjs
@@ -162,7 +162,7 @@ The migration itself is gated in the migration workspace
 - [x] G29: Viewing an article increments its view count exactly once per reader, and a repeat call from the same reader does not increment it again
   CHECK: node scripts/verify-viewcount.mjs
   EXPECT: VIEWCOUNT_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=e641ba60e635214e62754a4b00fc43c8b90c81af68b1a5fae64300742005cf71; output-bytes=75
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=af57df8079423222da830564c9346c2b3d3b76f5ecf6808f9cf17d188c045c9e; output-bytes=75
 
 - [x] G30: JSON-LD parses and validates: NewsArticle plus BreadcrumbList on an article, WebSite plus Organization on the homepage
   CHECK: node scripts/verify-jsonld.mjs
@@ -187,12 +187,12 @@ The migration itself is gated in the migration workspace
 - [x] G34: Middleware 301s a stored old URL to its new one and leaves a live URL untouched at 200 — and the run leaves its redirect row behind in no case
   CHECK: node scripts/verify-middleware.mjs
   EXPECT: MIDDLEWARE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=b23778c35d74bf6ce3dc8de5a9c56a7cb15ec11fa962211f0937042ee7527635; output-bytes=166
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=c4598d01a596b46417bd9f3ce3824a32f7123eeabaf1be087ec04fb4994231bf; output-bytes=166
 
 - [x] G35: Renaming an article A to B and back to A leaves A resolving with 200 and never creates a self-referencing redirect — and the run leaves none of its article, article versions or redirects behind
   CHECK: node scripts/verify-rename-cycle.mjs
   EXPECT: RENAMECYCLE_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=4acb3ea1e1650ff3d96c7ac32a0e1918385784f851fe7d9d8ebecc9fe1cf7cbd; output-bytes=293
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=280c2680008ec896ea71f3ae0e031f40c5ef3cd9b078667f1783ddb9fd92a707; output-bytes=293
 
 - [x] G36: Every page type emits exactly one h1 and a self-referencing canonical built on the absolute vh.ma origin, never the deployment host
   CHECK: node scripts/verify-canonicals.mjs
@@ -232,7 +232,7 @@ The migration itself is gated in the migration workspace
 - [x] G43: A G19, G34 or G35 run made to fail — inside its Payload driver, or after its records exist and its assertions run — exits non-zero with the injected failure and still leaves none of its own articles, article versions or redirects behind
   CHECK: node scripts/verify-gate-cleanup.mjs
   EXPECT: GATE_CLEANUP_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=cc9f2461cbfbe3bb288e241d3fe0fa6c3390baff91d6aee7927ff40d34538b79; output-bytes=718
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=d3e8f1846e4a5c79dd00039f7e6a468a68aa98390806ed54e0045ca308075ea1; output-bytes=718
 
 - [x] G44: The dev database holds no gate debris — no article or article version with a gate-stamped slug, no redirect from or to a gate path, no article version orphaned from its article, no contact message or newsletter subscriber with a gate address — and the detector counts a planted row of each kind before it measures
   CHECK: node scripts/verify-no-debris.mjs
@@ -289,7 +289,7 @@ the round-3 build (standing harness policy).
 - [x] R3-G8: Articles read clearly — paragraphs at least 16 px apart, body at least 17 px, column at most 720 px, balanced h1 — and every migrated body in vh_migration consists only of block nodes the renderer maps to spaced block elements
   CHECK: node scripts/verify-r3-reading.mjs
   EXPECT: R3_READING_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=f0386a850d253ec6f14b99eb345e1d2138eedbc5468e05b8e8f3930d65c05152; output-bytes=246
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=f2ad73d2b9dd74eb337b0e68acd98411d3946d4cab2888aab09782ab761540d8; output-bytes=246
 
 - [x] R3-G9: On home, category and article, every card shows its title and date without hover: rendered, opaque, visible and not clipped
   CHECK: node scripts/verify-r3-visible.mjs
@@ -299,7 +299,7 @@ the round-3 build (standing harness policy).
 - [x] R3-G10: First-party JS on home and article grows at most 15 KB gz over the recorded pre-round-3 baseline, and Lighthouse mobile (median of 3) scores at least 90 with CLS at most 0.02 on home, article and category
   CHECK: node scripts/verify-r3-perf.mjs
   EXPECT: R3_PERF_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=2a74ac0adc361d3d804b42120a2927b50ee712d9e0b2bb43176eb4261c34cc88; output-bytes=477
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=ef20713fa11597ed50ae4c469c979e9db790b571c49141243da6923f0eb55382; output-bytes=468
 
 - [x] R3-G11: axe reports zero serious or critical violations on home, article, category, search and 404 at 1440 and 390, and on the open drawer and search panel
   CHECK: node scripts/verify-r3-a11y.mjs
@@ -317,12 +317,12 @@ the round-3 build (standing harness policy).
 - [x] R3-G14: Live search (D3): /api/search returns at most 6 hits for a seeded term, none under 2 characters, survives an injection payload, and typing in the panel lists the hits plus a "Voir tous les résultats" link to /recherche/?q=
   CHECK: node scripts/verify-r3-livesearch.mjs
   EXPECT: R3_LIVESEARCH_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=9dcbd0c6e727cbd45b45e9065f8438e864282a3fa92ff7acd2be9e95ea059abf; output-bytes=169
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=4c7d810b58ff844e685b524326914b563ddeec0c52d98771e1837294790434ce; output-bytes=158
 
 - [x] R3-G15: typoFr is idempotent and never leaves a plain space beside a narrow no-break space across every migrated title, leaves URLs and times untouched, and a rendered seeded title carries U+202F before its question mark
   CHECK: node scripts/verify-r3-typo.mjs
   EXPECT: R3_TYPO_OK
-  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=3b9658e1da21136b1ef5d4c4cf7012c4a1314e5a4f3ec69a7766b53ba3425947; output-bytes=146
+  EVIDENCE: exit=0; shell=/bin/sh; cwd=/Users/mc/work/VH-magazine; path=87c361706fa6/16 entries; EXPECT=matched; output-sha256=451fa8df3b2b82e92a6689aa1ddae9b3533d10b6e50503be0501789cf2db03bd; output-bytes=146
 
 - [x] R3-G16: An unknown path renders the designed 404: status 404, h1 "Page introuvable", a search form and the 6 latest articles
   CHECK: node scripts/verify-r3-notfound.mjs

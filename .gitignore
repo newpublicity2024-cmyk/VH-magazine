@@ -33,6 +33,8 @@ yarn-error.log*
 
 # vercel
 .vercel
+# Production env values to paste into Vercel (credentials; delete once set)
+vercel-production-env.txt
 
 # test artifacts
 /test-results/
@@ -52,3 +54,5 @@ yarn-error.log*
 /*.png
 .g??-driver.mts
 probe-*.mts
+# Production admin credential (rotated 2026-11-19; local only)
+production-admin.txt

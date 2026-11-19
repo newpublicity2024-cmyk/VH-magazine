@@ -35,8 +35,20 @@ const potEmail = `g26-pot-${stamp}@example.com`
 
 try {
   await withPage(async ({ page, baseUrl }) => {
+    // Open the form and wait until React has hydrated it (the action runs through React), not
+    // for `networkidle`: a navigation that starts while link prefetches are in flight orphans
+    // them — Chromium never reports them finished, so `networkidle` never arrives (measured
+    // 2026-11-19: five `?_rsc=` prefetches started at 193 ms, the moment the next navigation
+    // began, stayed "open" for good while the server answered the same requests in a few ms).
+    const openForm = async () => {
+      await page.goto(`${baseUrl}/contact/`, { waitUntil: 'load' })
+      await page.waitForFunction(() => {
+        const f = document.querySelector('[data-contact-form]')
+        return Boolean(f) && Object.keys(f).some((k) => k.startsWith('__reactProps'))
+      })
+    }
     const fill = async ({ name, email, subject, message, honeypot }) => {
-      await page.goto(`${baseUrl}/contact/`, { waitUntil: 'networkidle' })
+      await openForm()
       await page.fill('#vh-name', name)
       await page.fill('#vh-email', email)
       if (subject) await page.fill('#vh-subject', subject)
@@ -89,7 +101,7 @@ try {
     assertEqual(potRows, 0, 'a honeypot-filled submission must be silently discarded, not stored')
 
     // 3. An invalid email is rejected by the action, not just the browser.
-    await page.goto(`${baseUrl}/contact/`, { waitUntil: 'networkidle' })
+    await openForm()
     await page.evaluate(() => {
       const f = document.querySelector('[data-contact-form]')
       f?.setAttribute('novalidate', 'novalidate')

@@ -32,8 +32,8 @@ import { candidatePaths } from '../lib/legacy-media'
  * 1970-01-01 and the converter dates by its modified date). Existing bodies are walked again
  * so the dropped-uploads list is the same on every run.
  *
- * Magazine issues (posts of the `sommaire` rubric) are NOT imported: 202 posts carry 150
- * distinct issue numbers and MagazineIssues.number is unique — an owner decision.
+ * Magazine issues (posts of the `sommaire` rubric) are not articles: import-issues.ts imports
+ * them as MagazineIssues (200 numbers from 202 posts; decision relayed 2026-11-19).
  *
  * Media the import cannot resolve (gate P5-convert:G5 proves each is one of these):
  *   - a body image the live site itself 404s → the node is dropped, listed in
@@ -360,8 +360,11 @@ async function main() {
   for (const line of redated) console.log(`  redated ${line}`)
 
   // 5. Redirects: /?p=<wpId> for every imported article, /tag/<slug>/ for every tag.
-  const existingFrom = new Set(
-    (await query<{ from: string }>('select "from" from redirects')).map((r) => r.from),
+  const existingFrom = new Map(
+    (await query<{ id: number; from: string; to: string }>('select id, "from", "to" from redirects')).map((r) => [
+      r.from,
+      r,
+    ]),
   )
   // Re-slugged articles (48 live slugs with percent-encoded characters the app's slug rule
   // refuses): their WordPress path → the new URL. WordPress links use lowercase hex; a browser
@@ -384,9 +387,29 @@ async function main() {
           (from) => ({ from, to: t.redirectTo }),
         ),
       ),
-  ].filter((r) => !existingFrom.has(r.from))
+  ]
+  // Converge, like import-page-redirects.ts: an existing row whose target changed is repointed.
+  // A tag's target is its most common category, which new articles can move (2026-11-19 P6:
+  // /tag/bamotors/ went from /category/moteur/ to /category/moteur/vh-moteur/).
+  const repoint = redirects.filter((r) => existingFrom.has(r.from) && existingFrom.get(r.from)!.to !== r.to)
+  let repointed = 0
+  for (const r of repoint) {
+    try {
+      await payload.update({
+        collection: 'redirects',
+        id: existingFrom.get(r.from)!.id,
+        data: { to: r.to },
+        context: ctx,
+        overrideAccess: true,
+      })
+      repointed++
+    } catch (e) {
+      fail({ step: 'redirect repoint', from: r.from, error: (e as Error).message })
+    }
+  }
+  const missing = redirects.filter((r) => !existingFrom.has(r.from))
   let redirected = 0
-  await pool(redirects, concurrency, async (r) => {
+  await pool(missing, concurrency, async (r) => {
     try {
       await payload.create({
         collection: 'redirects',
@@ -399,7 +422,7 @@ async function main() {
       fail({ step: 'redirect', from: r.from, error: (e as Error).message })
     }
   })
-  console.log(`redirects: ${redirected} created`)
+  console.log(`redirects: ${redirected} created, ${repointed} repointed`)
 
   // 6. updatedAt ← WordPress's modified date, so sitemaps carry the real lastmod.
   const byWp = new Map(articles.map((r) => [r.wpId, r]))

@@ -109,8 +109,10 @@ export default async function SearchPage({ searchParams }: Props) {
                         {typoFr(hit.title)}
                       </Link>
                     </h2>
-                    {hit.excerpt ? (
-                      <p className="type-copy vh-clamp-2 mt-2 hidden text-ink-2 sm:block">{typoFr(hit.excerpt)}</p>
+                    {hit.excerpt || hit.snippet ? (
+                      <p className="type-copy vh-clamp-2 mt-2 hidden text-ink-2 sm:block">
+                        {typoFr((hit.excerpt || hit.snippet) as string)}
+                      </p>
                     ) : null}
                     <time data-date dateTime={isoDate(hit.published_at)} className="type-meta mt-3 block text-meta">
                       {formatDate(hit.published_at)}
