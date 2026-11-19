@@ -39,6 +39,19 @@ function isHandwrittenLede(excerpt: string | null | undefined, body: unknown): b
 /** Spec §9: articles are static with on-demand revalidation. */
 export const revalidate = 3600
 
+/**
+ * Without generateStaticParams, Next renders a dynamic segment on EVERY request whatever
+ * `revalidate` says: the build listed no ISR route, and Vercel answered each article
+ * `private, no-store` in ~1 s (measured on the production deployment, 2026-11-19). An empty
+ * list prebuilds nothing — 8k articles would slow every deploy — and lets each article render
+ * on its first request, then be served from the ISR cache until `revalidate` or the publish
+ * hook (`revalidatePath('/', 'layout')`, hooks/revalidate.ts) expires it. Redirects stay
+ * correct: the proxy runs ahead of the page cache.
+ */
+export async function generateStaticParams(): Promise<{ path: string[] }[]> {
+  return []
+}
+
 type Params = { params: Promise<{ path: string[] }> }
 
 const asMedia = (v: unknown): Media | null =>
@@ -111,6 +124,7 @@ export default async function ArticlePage({ params }: Params) {
   // would cost a database lookup on every article view to catch a rare
   // malformed URL. Google and Bing both document 308 as equivalent to 301 for
   // canonicalisation, so the SEO outcome is the same. Flagged for the owner.
+
   if (requested !== canonical) permanentRedirect(canonical)
 
   const category = asCategory(article.category)
