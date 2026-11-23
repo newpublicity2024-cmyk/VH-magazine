@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'fs'
+import os from 'os'
 import path from 'path'
 import { getPayload } from 'payload'
 import type { Payload } from 'payload'
@@ -27,10 +28,15 @@ import { candidatePaths } from '../lib/legacy-media'
  *   4. articles (published)
  *
  * A re-run creates only what is missing, and converges what exists on the conversion: an
- * existing article whose publication date differs is updated through Payload (so the latest
- * version, which the admin editor opens, changes too — e.g. post 47196, which WordPress dates
- * 1970-01-01 and the converter dates by its modified date). Existing bodies are walked again
- * so the dropped-uploads list is the same on every run.
+ * existing article — found by WordPress id through the previous run's map, else by slug —
+ * that differs from its conversion in any imported field (title, slug, excerpt, hero, body,
+ * category, tags, video, SEO, publication date) is updated through Payload, so the latest
+ * version, which the admin editor opens, changes too. That carries WordPress edits made after
+ * a post's first import into the final sync (until 2026-11-23 only the date converged — e.g.
+ * post 47196, which WordPress dates 1970-01-01 and the converter dates by its modified date).
+ * A re-slugged or re-filed post keeps its old URL as a 301 through the articles' redirect hook.
+ * Existing bodies are walked again so the dropped-uploads list is the same on every run.
+ * `--dry-run` lists what would be created and converged and writes nothing.
  *
  * Magazine issues (posts of the `sommaire` rubric) are not articles: import-issues.ts imports
  * them as MagazineIssues (200 numbers from 202 posts; decision relayed 2026-11-19).
@@ -127,9 +133,13 @@ async function main() {
     throw new Error(`refusing to import into "${dbName}" — only vh_migration`)
   const concurrency = Number(arg('concurrency', '6'))
   const limit = arg('limit') ? Number(arg('limit')) : Infinity
-  const errorsFile = W('import-articles-errors.jsonl')
-  const deferredFile = W('import-articles-deferred.jsonl')
-  const droppedFile = W('import-articles-dropped.jsonl')
+  // --dry-run: report what step 4 would create and converge; steps 1–3 still run (each is a
+  // no-op on a conversion already imported), nothing else is written, manifests included.
+  const dryRun = process.argv.includes('--dry-run')
+  const sink = (f: string) => (dryRun ? os.devNull : W(f))
+  const errorsFile = sink('import-articles-errors.jsonl')
+  const deferredFile = sink('import-articles-deferred.jsonl')
+  const droppedFile = sink('import-articles-dropped.jsonl')
   for (const f of [errorsFile, deferredFile, droppedFile]) writeFileSync(f, '')
   const fail = (entry: Record<string, unknown>) =>
     appendFileSync(errorsFile, JSON.stringify(entry) + '\n')
@@ -241,20 +251,101 @@ async function main() {
   }
   console.log(`media alt text from WordPress: ${altRows.length}`)
 
-  // 4. Articles.
-  const existingArticles = new Map(
-    (
-      await query<{ id: number; slug: string; published_at: Date | string | null }>(
-        'select id, slug, published_at from articles',
-      )
-    ).map((r) => [r.slug, { id: r.id, publishedAt: r.published_at }]),
+  // 4. Articles. An existing article is found by its WordPress id through the previous run's
+  //    map — so a post WordPress re-slugged stays the same article — and otherwise by slug.
+  type Row = {
+    id: number
+    slug: string
+    title: string
+    excerpt: string | null
+    featured_image_id: number | null
+    body: { root: LexNode } | null
+    category_id: number | null
+    published_at: Date | string | null
+    is_video: boolean | null
+    video_url: string | null
+    seo_title: string | null
+    seo_description: string | null
+    seo_canonical_u_r_l: string | null
+    seo_no_index: boolean | null
+    tags: number[]
+  }
+  const rows = await query<Row>(
+    `select a.id, a.slug, a.title, a.excerpt, a.featured_image_id, a.body, a.category_id,
+            a.published_at, a.is_video, a.video_url, a.seo_title, a.seo_description,
+            a.seo_canonical_u_r_l, a.seo_no_index,
+            coalesce((select array_agg(r.tags_id order by r.tags_id) from articles_rels r
+                       where r.parent_id = a.id and r.path = 'tags' and r.tags_id is not null),
+                     '{}') as tags
+       from articles a`,
   )
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const bySlug = new Map(rows.map((r) => [r.slug, r]))
   const mapFile = W('import-articles.jsonl')
+  const previous = new Map(
+    existsSync(mapFile)
+      ? readJsonl<{ wpId: number; id: number }>(mapFile).map((m) => [m.wpId, m.id])
+      : [],
+  )
   const map: { wpId: number; id: number; url: string }[] = []
   let created = 0
   let droppedUploads = 0
   let deferred = 0
   const redated: string[] = []
+  const converged: string[] = []
+  /** JSON with sorted keys: jsonb stores an object's keys in its own order. */
+  const canonical = (v: unknown): string =>
+    JSON.stringify(v, (_k, x: unknown) =>
+      x && typeof x === 'object' && !Array.isArray(x)
+        ? Object.fromEntries(
+            Object.entries(x as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+          )
+        : x,
+    )
+  const tagsOf = (r: Converted) => [
+    ...new Set(r.tagWpIds.map((t) => tagId.get(t)).filter((t): t is number => Boolean(t))),
+  ]
+  /** What the conversion says an article holds, in Payload's field names (null clears). */
+  const content = (r: Converted, root: LexNode, featuredImage: number, category: number) => ({
+    title: r.title,
+    slug: r.slug,
+    excerpt: r.excerpt ?? null,
+    featuredImage,
+    // no content on WordPress → no body (an empty Lexical root is not a valid document)
+    body: root.children?.length ? { root } : null,
+    category,
+    tags: tagsOf(r),
+    isVideo: r.isVideo,
+    videoUrl: r.videoUrl ?? null,
+    seo: {
+      title: r.seo.title ?? null,
+      description: r.seo.description ?? null,
+      canonicalURL: r.seo.canonicalURL ?? null,
+      noIndex: r.seo.noIndex,
+    },
+  })
+  /** The fields in which a stored article differs from its conversion. */
+  const differences = (have: Row, want: ReturnType<typeof content>): string[] => {
+    const d: string[] = []
+    const sorted = (ids: number[]) => [...new Set(ids)].sort((a, b) => a - b).join()
+    if (have.title !== want.title) d.push('title')
+    if (have.slug !== want.slug) d.push('slug')
+    if ((have.excerpt ?? null) !== want.excerpt) d.push('excerpt')
+    if (have.featured_image_id !== want.featuredImage) d.push('featuredImage')
+    if (have.category_id !== want.category) d.push('category')
+    if (sorted(have.tags) !== sorted(want.tags)) d.push('tags')
+    if (Boolean(have.is_video) !== want.isVideo) d.push('isVideo')
+    if ((have.video_url ?? null) !== want.videoUrl) d.push('videoUrl')
+    if (
+      (have.seo_title ?? null) !== want.seo.title ||
+      (have.seo_description ?? null) !== want.seo.description ||
+      (have.seo_canonical_u_r_l ?? null) !== want.seo.canonicalURL ||
+      Boolean(have.seo_no_index) !== want.seo.noIndex
+    )
+      d.push('seo')
+    if (canonical(have.body ?? null) !== canonical(want.body)) d.push('body')
+    return d
+  }
   const bodyWithIds = (root: LexNode, wpId: number): LexNode => {
     const walk = (n: LexNode): LexNode | null => {
       if (n.type === 'upload') {
@@ -277,27 +368,55 @@ async function main() {
   }
   await pool(articles, concurrency, async (r) => {
     const url = `/${r.categoryPath}/${r.slug}/`
-    const have = existingArticles.get(r.slug)
+    const prevId = previous.get(r.wpId)
+    const have = (prevId === undefined ? undefined : byId.get(prevId)) ?? bySlug.get(r.slug)
     const source = 'root' in r.body ? (r.body as { root: LexNode }).root : (r.body as LexNode)
     if (have) {
       map.push({ wpId: r.wpId, id: have.id, url })
-      // The same walk as a first import, for the dropped-uploads list; the body itself stays.
-      bodyWithIds(source, r.wpId)
-      const stored = have.publishedAt === null ? NaN : new Date(have.publishedAt).getTime()
-      if (stored !== new Date(r.publishedAt).getTime()) {
-        try {
-          await payload.update({
-            collection: 'articles',
-            id: have.id,
-            data: { publishedAt: r.publishedAt },
-            context: ctx,
-            overrideAccess: true,
-          })
-          redated.push(`${r.slug}: ${new Date(stored).toISOString()} → ${r.publishedAt}`)
-        } catch (e) {
-          fail({ step: 'article date', wpId: r.wpId, slug: r.slug, error: (e as Error).message })
-        }
+      // The same walk as a first import, so the dropped-uploads list is the same on every run.
+      const root = bodyWithIds(source, r.wpId)
+      const category = catId.get(r.categoryWpId)
+      if (!category) {
+        fail({ step: 'article', wpId: r.wpId, slug: r.slug, error: `no category ${r.categoryWpId}` })
+        return
       }
+      // A hero WordPress changed to an upload newer than the media import: keep the current
+      // one and list the article as deferred, so P6 fails until the media delta brings it.
+      const featuredImage = r.featured ? resolveMedia(r.featured) : null
+      if (!featuredImage) {
+        deferred++
+        record(deferredFile, { wpId: r.wpId, slug: r.slug, featured: r.featured, kept: have.featured_image_id })
+      }
+      const want = content(r, root, featuredImage ?? have.featured_image_id!, category)
+      const changed = differences(have, want)
+      const stored = have.published_at === null ? NaN : new Date(have.published_at).getTime()
+      if (stored !== new Date(r.publishedAt).getTime()) changed.push('publishedAt')
+      if (!changed.length) return
+      if (dryRun) {
+        converged.push(`${r.slug}: ${changed.join(', ')}`)
+        return
+      }
+      try {
+        // Every field, through Payload, so the latest version (what the admin editor opens)
+        // says the same. The redirect hook stays on: when WordPress re-slugged or re-filed the
+        // post, its URL on this site moves too and the old one 301s, inbound rows repointed.
+        await payload.update({
+          collection: 'articles',
+          id: have.id,
+          data: { ...want, publishedAt: r.publishedAt, _status: 'published' } as never,
+          context: {},
+          overrideAccess: true,
+        })
+        if (changed.includes('publishedAt'))
+          redated.push(`${r.slug}: ${new Date(stored).toISOString()} → ${r.publishedAt}`)
+        converged.push(`${r.slug}: ${changed.join(', ')}`)
+      } catch (e) {
+        fail({ step: 'article converge', wpId: r.wpId, slug: r.slug, error: (e as Error).message })
+      }
+      return
+    }
+    if (dryRun) {
+      created++
       return
     }
     const featuredImage = r.featured ? resolveMedia(r.featured) : null
@@ -347,6 +466,14 @@ async function main() {
       fail({ step: 'article', wpId: r.wpId, slug: r.slug, error: (e as Error).message })
     }
   })
+  if (dryRun) {
+    console.log(
+      `dry run: ${created} articles to create, ${converged.length} to converge on their conversion, ${deferred} existing ones whose new hero is not imported`,
+    )
+    for (const line of converged) console.log(`  would converge ${line}`)
+    console.log('dry run: nothing written')
+    process.exit(0)
+  }
   writeFileSync(
     mapFile,
     map
@@ -355,8 +482,9 @@ async function main() {
       .join('\n') + '\n',
   )
   console.log(
-    `articles: ${created} created, ${map.length} mapped, ${redated.length} publication dates updated, ${deferred} deferred to P6, ${droppedUploads} unresolvable body uploads dropped`,
+    `articles: ${created} created, ${map.length} mapped, ${converged.length} converged on WordPress edits (${redated.length} publication dates), ${deferred} deferred to P6, ${droppedUploads} unresolvable body uploads dropped`,
   )
+  for (const line of converged) console.log(`  converged ${line}`)
   for (const line of redated) console.log(`  redated ${line}`)
 
   // 5. Redirects: /?p=<wpId> for every imported article, /tag/<slug>/ for every tag.
