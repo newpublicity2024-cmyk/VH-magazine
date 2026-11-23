@@ -6,9 +6,21 @@ rebuilt from WordPress + WPBakery. Sister sites: `MFM-sport`, `lallafatema`.
 Source of truth for scope: `vh-magazine-website-spec.md`, `vh_homepage_wireframe.svg`,
 and the amendments + inventory in `PLAN.md`. Acceptance lives in `GATES.md`.
 
-## Session state (2026-11-19)
+## Session state (2026-11-23)
 
 **What is left before launch: `LAUNCH.md`** (owner inputs, engineering steps, critical path).
+
+- **2026-11-23 — archive refresh (migration `GATES-P6R.md`), user go-ahead for the refresh and its Blob
+  uploads only** (NOT the Neon push, `MEDIA_ORIGIN`, or deleting `rabat.jpg` — all still pending).
+  `vh_migration` = live vh.ma at 14:32 UTC: 8,158 articles (+11), 200 issues, 31,308 media (+77).
+  Fixed on branch **`migration/p6-refresh`** (local, not pushed; the launch-day sync must run from it
+  or after it merges): `import-articles.ts` now converges existing articles on their conversion
+  (before, only the date — WordPress edits after a post's first import were silently dropped) and
+  has `--dry-run`. In the migration workspace: the converter keeps site links Payload would mangle
+  absolute (see landmine), P5-import:G2 compares whole bodies, verify-p6 compares the survey with the
+  delta's listing time. Migration ledgers from reset: P1 7/7, P3 7/8 (`rabat.jpg`), P4 9/9, P5-rest
+  7/7, P5-import 8/8, P5-convert 7/7, P6 2/2, P6R 8/8. `.next` now holds a build of
+  2026-11-23 whose ISR cache was filled from `vh_migration` — rebuild before any `vh_magazine` HTML gate.
 
 - **2026-11-19 finishing pass — ledger `GATES-FINISH.md`; merged to `main` as PR #2 (d031cd9) and
   deployed to production the same day** (pushed with the fine-grained token the user keeps in `.env`
@@ -93,6 +105,12 @@ reported something other than what it measured.
 
 ## Landmines
 
+- **Payload's Lexical link field percent-encodes any URL its `validateUrl` rejects** (richtext-lexical
+  `features/link/server/baseFields.js`, `url` beforeChange → `encodeURIComponent`). A root-relative URL
+  passes only `/^\/[\w\-./]*(\?[-;&=%\w]*)?(#[\w-]+)?$/` — no `%`, `~`, `,`, accents — so
+  `/wp-content/uploads/…/Lettre-a%CC%80.pdf` is stored as `%2Fwp-content%2F…`, a dead link, and every
+  re-save encodes again. Found 2026-11-23 (7 links, 5 migrated articles); the migration converter keeps
+  such site links absolute. An editor pasting such a relative link in the admin hits it too.
 - **Never use a fixed port for a test server.** A leaked `next start` holds the
   port and later gates silently test a stale bundle. `withServer` takes a fresh
   OS-assigned port per call and fails loudly if a response arrives while its own

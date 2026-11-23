@@ -18,7 +18,17 @@ Rewritten 2026-11-19 after the first production deployment with a database. Deta
   build migrated Neon `production` (`20261119_120000_search_body`); re-verified on the live alias:
   `verify-deployed.mjs` and `verify-prod-admin.mjs` pass, an article's second request is a Vercel
   cache HIT (0.32 s), a wrong-category URL sends one Location, `/page/2/` 301s to `/`.
-- **Archive** (local `vh_migration`, P6 rehearsal 2026-11-19): see "Numbers" below.
+- **Archive refreshed 2026-11-23** (local `vh_migration`, migration `GATES-P6R.md`; user go-ahead
+  for the refresh and its Blob uploads only): 11 new articles and 77 new media, equal to the live
+  site when re-listed at 14:32 UTC (8,360 posts, none new, gone or edited since the survey). Two
+  defects found and fixed on the way (branch `migration/p6-refresh`, local, not pushed):
+  - **the sync dropped WordPress edits** — `import-articles.ts` updated only the publication date of
+    an article it already held; it now converges every field (a re-slug keeps its old URL as a
+    301), rehearsed by P6R:G2. The launch-day sync must run from this branch (or after it merges);
+  - **7 dead links in 5 articles** — Payload's link field percent-encodes a relative URL with `%`
+    in it (`%2Fwp-content%2F…`); the converter now keeps those absolute on www.vh.ma (P6R:G3).
+  Migration ledgers re-run from a reset: P1 7/7, P3 7/8 (`rabat.jpg`), P4 9/9, P5-rest 7/7,
+  P5-convert 7/7, P5-import 8/8, P6 2/2, P6R 8/8. See "Numbers" below.
 - Design: round 3 approved by the owner (2026-11-17).
 - **Ledgers, all re-run from a reset on 2026-11-19 (RUN lines = runnable gates in each):**
   `GATES.md` 61/62 (R3-G3 logos open) · `GATES-FINISH.md` 13/13 · `GATES-LAUNCH.md` 7/7 + L4
@@ -78,6 +88,10 @@ posts), hotlinked images **kept as links**, search **covers article bodies**.
        (VH) import-articles.ts, import-page-redirects.ts, import-issues.ts   # DATABASE_URL=vh_migration
        node tools/verify-p6.mjs                              # every surveyed post is in vh_migration
        ```
+       Since 2026-11-23: preview with `import-articles.ts … --dry-run` (lists what will be created and
+       converged), log the three imports as `logs/p6r-import-<date>.log` (`== <step> <ISO>` and
+       `<step> exit=N` lines — under bash: zsh has no `PIPESTATUS`), and re-run `GATES-P6R.md` with
+       that date in G1. Re-run P6R (2026-11-23) took 13:05–14:32 UTC; the survey alone 38 min.
 3. [ ] **Push the archive to Neon** (go-ahead) — rehearsed by GATES-FINISH F7:
        ```
        TARGET_DATABASE_URL=<Neon production branch, pooled> \
@@ -111,19 +125,19 @@ posts), hotlinked images **kept as links**, search **covers article bodies**.
 Critical path: dumps deleted (now) → push + merge (go-ahead) → final sync (P6, freeze) → archive
 push (go-ahead) → verify on Vercel → logos + accounts → cutover.
 
-## Numbers (measured 2026-11-19)
+## Numbers (measured 2026-11-23)
 
-| | Live vh.ma (REST survey 10:18–10:54 UTC) | Local `vh_migration` after the P6 rehearsal |
+| | Live vh.ma (REST survey 13:05–13:43 UTC) | Local `vh_migration` after the P6R refresh |
 |---|---|---|
-| Articles | 8,147 published posts outside `/sommaire/` | 8,147 (26 added today: 19 new, 7 that waited for their hero image) |
+| Articles | 8,158 published posts outside `/sommaire/` | 8,158 (11 added 2026-11-23; 5 bodies corrected) |
 | Magazine issues | 202 `/sommaire/` posts | 200 issues (N°60 and N°190 each merge two posts) |
-| Media | 28,331 items (28,017 visible) | 31,231 rows (+100 today) + 167 raw newsletters, all in Blob |
-| Categories / tags | 131 / 29,064 | 130 / 27,979 (the tags articles use) |
-| Redirects | — | 36,448 (`/?p=`, tag archives, re-slugs, 8 pages, 204 issue redirects) |
-| Users | 23 authors (endpoint now 403) | 0 — the push re-creates the admin |
-| Size | — | 195 MB (Neon) · Blob store 154,731 objects ≈ 22 GB |
+| Media | 28,395 items (28,094 visible) | 31,308 rows (+77 on 2026-11-23) + 167 raw newsletters, all in Blob |
+| Categories / tags | 131 / 29,088 | 130 / 28,004 (the tags articles use) |
+| Redirects | — | 36,484 (`/?p=`, tag archives, re-slugs, 8 pages, 204 issue redirects) |
+| Users | 23 authors (endpoint 403) | 0 — the push re-creates the admin |
+| Size | — | 204 MB (Neon) · Blob store 155,140 objects |
 
-Uploads delta since the P1 inventory (2026-11-05): 884 files in `uploads/2026/11/`, 106 originals
-staged, 100 Media rows + 1 newsletter imported. One leftover Blob object from a renamed upload
-(`rabat.jpg`, 214 KB) awaits `blob-orphans.ts --delete` (blocked by the session's permission
-classifier — run it, or approve it).
+Uploads delta since the P1 inventory (2026-11-05): 884 files in `uploads/2026/11/` by 2026-11-19 (106
+originals staged, 100 Media rows + 1 newsletter), 905 more by 2026-11-23 (78 staged, 77 Media rows). One leftover Blob object from a renamed upload
+(`rabat.jpg`, 214 KB) awaits `blob-orphans.ts --delete` — needs your go-ahead (not given on
+2026-11-23); P3:G7 fails on it until then.
