@@ -17,6 +17,9 @@ import { getPool, query } from '../lib/db'
  *
  * Set with SQL, as the site's own view counter does (/api/view): a counter is not editorial
  * content, and a Payload update per article would write 8,000 versions and purge every page.
+ * The latest version row gets the same count: Payload rebuilds a document from its latest
+ * version on every update, so a count on the article row alone was reset to 0 by the next
+ * import that touched the article (measured 2026-11-24: 8,156 counts lost to the bylines pass).
  * Idempotent; refuses any database but vh_migration. Articles vh.ma shows no counter for keep 0.
  */
 
@@ -82,6 +85,13 @@ async function main() {
      select (select count(*) from u)::text as n, (select count(*) from hit)::text as matched`,
     [[...viewsByPath.keys()], [...viewsByPath.values()]],
   )
+  // Articles are versioned: carry each count into its latest version (see the header).
+  const versions = await query<{ n: string }>(
+    `with u as (update _articles_v v set version_view_count = a.view_count from articles a
+                 where v.parent_id = a.id and v.latest = true
+                   and v.version_view_count is distinct from a.view_count returning 1)
+     select count(*)::text as n from u`,
+  )
   // Sorted on the numeric column, not on the text the report prints (that sorted "999" first).
   const top = await query<{ slug: string; views: string }>(
     'select slug, view_count::text as views from articles order by articles.view_count desc, published_at desc limit 5',
@@ -90,6 +100,7 @@ async function main() {
     `view counts from ${rows.length} vh.ma pages (${unreadable} without a readable counter):\n` +
       `  articles: ${a.counted} counted, ${a.matched} matched by slug + ${viaRedirect[0].matched} through their re-slug redirect, ${a.changed + Number(viaRedirect[0].n)} changed\n` +
       `  issues:   ${i.counted} counted, ${i.matched} matched, ${i.changed} changed\n` +
+      `  latest article versions brought in line: ${versions[0].n}\n` +
       `  top articles: ${top.map((t) => `${t.slug} ${t.views}`).join(' · ')}`,
   )
   await getPool().end()
