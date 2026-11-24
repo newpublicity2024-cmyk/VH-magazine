@@ -18,13 +18,14 @@ const PRIMARY_NAV = [
   { label: 'Moteur', href: '/category/moteur/' },
   { label: 'Sport', href: '/category/sport/' },
   { label: 'Vidéos', href: '/vh-tv/' },
-  { label: "Les Couv's", href: null }, // dropdown parent, no destination of its own
+  { label: 'Les Couv’s', href: null }, // dropdown parent, no destination of its own (vh.ma's curly apostrophe)
 ]
 
 /** Spec §4.2 — the Les Couv's dropdown. */
 const COUVS_DROPDOWN = [
   { label: 'Les Unes de VH', href: '/magazine-maroc/' },
-  { label: "La Couv'", href: '/category/la-couv/' },
+  // Spec §4.2 writes La Couv'; vh.ma prints La Couv’ (WordPress curls menu titles) — parity pass 2026-11-24.
+  { label: 'La Couv’', href: '/category/la-couv/' },
 ]
 
 /** Spec §4.1 — top bar utility links. */

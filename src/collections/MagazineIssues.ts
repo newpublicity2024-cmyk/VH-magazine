@@ -63,6 +63,29 @@ export const MagazineIssues: CollectionConfig = {
         date: { pickerAppearance: 'dayOnly', displayFormat: 'dd/MM/yyyy' },
       },
     },
+    {
+      // Since N°202, vh.ma publishes an issue as an ordinary Actu post (categories sommaire +
+      // actualite) instead of a /sommaire/ post. Its page is that article: issueUrl() points
+      // there, and /sommaire/<slug>/ 301s to it.
+      name: 'article',
+      type: 'relationship',
+      relationTo: 'articles',
+      label: 'Article du numéro',
+      admin: {
+        position: 'sidebar',
+        description: 'Si le numéro est présenté par un article, son lien mène à cet article.',
+      },
+    },
+    {
+      // vh.ma ranks issue posts among "Les plus lus" (N°198 is there). Imported from vh.ma's own
+      // counter; read-only like an article's.
+      name: 'viewCount',
+      type: 'number',
+      label: 'Vues',
+      defaultValue: 0,
+      index: true,
+      admin: { position: 'sidebar', readOnly: true },
+    },
     slugField('title', { reserved: true }),
     seoField,
   ],

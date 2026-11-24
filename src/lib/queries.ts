@@ -1,8 +1,9 @@
 import { cache } from 'react'
+import type { Where } from 'payload'
 
 import { getPayloadClient } from '@/lib/payload'
-import { categoryPath } from '@/lib/routes'
-import type { Article, Banner, Category, Homepage, MagazineIssue, SiteSetting } from '@/payload-types'
+import { categoryPath, issueUrl } from '@/lib/routes'
+import type { Article, Author, Banner, Category, Homepage, MagazineIssue, SiteSetting } from '@/payload-types'
 
 /**
  * Read layer for the frontend. Everything goes through the Payload Local API
@@ -15,6 +16,12 @@ import type { Article, Banner, Category, Homepage, MagazineIssue, SiteSetting } 
  * correct. Depth 2 covers category → parent; the MAX_DEPTH walk in routes.ts
  * tolerates deeper trees by terminating at the first unpopulated ancestor.
  */
+
+/**
+ * Newest first; equal dates (17 publication times are shared by several articles) in import
+ * order, which follows WordPress's ids — as vh.ma lists them (2023-11-05 15:06 Essai DS4 pair).
+ */
+const BY_DATE = ['-publishedAt', 'id']
 
 /** Fields the card components actually read. Keeps the body out of list queries. */
 const CARD_SELECT = {
@@ -29,7 +36,10 @@ const CARD_SELECT = {
   videoUrl: true,
 } as const
 
-/** All descendant category ids for a slug, so a parent block includes its children. */
+/**
+ * A category and all its descendants, at every depth — WordPress's category archive includes
+ * posts filed in any subcategory, so the listings here do too.
+ */
 async function categoryTreeIds(slug: string): Promise<number[]> {
   const payload = await getPayloadClient()
 
@@ -41,15 +51,42 @@ async function categoryTreeIds(slug: string): Promise<number[]> {
   })
   if (root.docs.length === 0) return []
 
-  const rootId = root.docs[0].id as number
-  const children = await payload.find({
-    collection: 'categories',
-    where: { parent: { equals: rootId } },
-    limit: 50,
-    depth: 0,
-  })
+  const all = await payload.find({ collection: 'categories', limit: 1000, depth: 0, pagination: false })
+  const children = new Map<number, number[]>()
+  for (const c of all.docs) {
+    const parent = typeof c.parent === 'object' && c.parent ? c.parent.id : c.parent
+    if (typeof parent === 'number') children.set(parent, [...(children.get(parent) ?? []), c.id as number])
+  }
+  const ids = [root.docs[0].id as number]
+  for (let i = 0; i < ids.length; i++) ids.push(...(children.get(ids[i]) ?? []))
+  return ids
+}
 
-  return [rootId, ...children.docs.map((d) => d.id as number)]
+/**
+ * Articles that present a magazine issue (N°202 onwards, linked from the issue). vh.ma's homepage
+ * category blocks leave them out — N°203 is in Actu's category page but not in the homepage's Actu
+ * block (measured 2026-11-24) — and show them in "En kiosque" and "Toutes nos unes" instead.
+ */
+const getIssueArticleIds = cache(async (): Promise<number[]> => {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: 'magazine-issues',
+    where: { article: { exists: true } },
+    limit: 500,
+    depth: 0,
+    select: { article: true },
+  })
+  return res.docs
+    .map((d) => (typeof d.article === 'object' && d.article ? d.article.id : d.article))
+    .filter((id): id is number => typeof id === 'number')
+})
+
+/**
+ * Membership in a category tree, as WordPress counts it: the article's own category (the one
+ * its URL uses) OR any of its other categories (`secondaryCategories`).
+ */
+function inCategories(ids: number[]): Where {
+  return { or: [{ category: { in: ids } }, { secondaryCategories: { in: ids } }] }
 }
 
 /**
@@ -60,15 +97,22 @@ async function categoryTreeIds(slug: string): Promise<number[]> {
  * behaves, and what makes the nested URL visible on the homepage at all.
  */
 export const getArticlesByCategory = cache(
-  async (slug: string, limit: number): Promise<Article[]> => {
+  async (slug: string, limit: number, withoutIssueArticles = false): Promise<Article[]> => {
     const ids = await categoryTreeIds(slug)
     if (ids.length === 0) return []
 
     const payload = await getPayloadClient()
+    const skip = withoutIssueArticles ? await getIssueArticleIds() : []
     const result = await payload.find({
       collection: 'articles',
-      where: { and: [{ category: { in: ids } }, { _status: { equals: 'published' } }] },
-      sort: '-publishedAt',
+      where: {
+        and: [
+          inCategories(ids),
+          { _status: { equals: 'published' } },
+          ...(skip.length ? [{ id: { not_in: skip } }] : []),
+        ],
+      },
+      sort: BY_DATE,
       limit,
       depth: 2,
       select: CARD_SELECT,
@@ -77,18 +121,52 @@ export const getArticlesByCategory = cache(
   },
 )
 
-/** Most-read across all categories (spec §5.4.5). */
-export const getMostRead = cache(async (limit: number): Promise<Article[]> => {
+/** A card in a sidebar list; `href` set when it is not an article (an issue among the most read). */
+export type RankedArticle = Article & { href?: string }
+
+/**
+ * Most-read across all categories (spec §5.4.5). As on vh.ma, magazine issues rank too (its
+ * "Les plus lus" lists N°198): both counters are vh.ma's own, imported by the migration.
+ */
+export const getMostRead = cache(async (limit: number): Promise<RankedArticle[]> => {
   const payload = await getPayloadClient()
-  const result = await payload.find({
-    collection: 'articles',
-    where: { _status: { equals: 'published' } },
-    sort: '-viewCount',
-    limit,
-    depth: 2,
-    select: CARD_SELECT,
-  })
-  return result.docs as Article[]
+  const [articles, issues] = await Promise.all([
+    payload.find({
+      collection: 'articles',
+      where: { _status: { equals: 'published' } },
+      // Ties (vh.ma shows views rounded to 0.1K) go to the newer article, deterministically.
+      sort: ['-viewCount', '-publishedAt'],
+      limit,
+      depth: 2,
+      select: CARD_SELECT,
+    }),
+    payload.find({
+      collection: 'magazine-issues',
+      where: { viewCount: { greater_than: 0 } },
+      sort: ['-viewCount', '-publishedAt'],
+      limit,
+      depth: ISSUE_DEPTH,
+    }),
+  ])
+  const ranked: { views: number; date: string; card: RankedArticle }[] = [
+    ...(articles.docs as Article[]).map((a) => ({ views: a.viewCount ?? 0, date: a.publishedAt ?? '', card: a })),
+    ...(issues.docs as MagazineIssue[]).map((i) => ({
+      views: i.viewCount ?? 0,
+      date: i.publishedAt,
+      card: {
+        id: -i.id,
+        title: i.title,
+        slug: i.slug,
+        featuredImage: i.cover,
+        publishedAt: i.publishedAt,
+        category: null,
+        viewCount: i.viewCount,
+        href: issueUrl(i),
+      } as unknown as RankedArticle,
+    })),
+  ]
+  ranked.sort((a, b) => b.views - a.views || b.date.localeCompare(a.date))
+  return ranked.slice(0, limit).map((r) => r.card)
 })
 
 /** Latest across all categories (spec §5.4.6). */
@@ -97,7 +175,7 @@ export const getLatestArticles = cache(async (limit: number): Promise<Article[]>
   const result = await payload.find({
     collection: 'articles',
     where: { _status: { equals: 'published' } },
-    sort: '-publishedAt',
+    sort: BY_DATE,
     limit,
     depth: 2,
     select: CARD_SELECT,
@@ -105,14 +183,20 @@ export const getLatestArticles = cache(async (limit: number): Promise<Article[]>
   return result.docs as Article[]
 })
 
-/** Latest magazine issues (spec §5.13). */
+/**
+ * Issues load at depth 3: an issue presented by an article (N°202 onwards) links to that
+ * article's URL, which needs article → category → parent populated (issueUrl in routes.ts).
+ */
+const ISSUE_DEPTH = 3
+
+/** Latest magazine issues (spec §5.13; the sidebar's "En kiosque" is the first). */
 export const getIssues = cache(async (limit: number): Promise<MagazineIssue[]> => {
   const payload = await getPayloadClient()
   const result = await payload.find({
     collection: 'magazine-issues',
     sort: '-number',
     limit,
-    depth: 1,
+    depth: ISSUE_DEPTH,
   })
   return result.docs as MagazineIssue[]
 })
@@ -142,6 +226,18 @@ export const getBanners = cache(async (): Promise<Record<string, Banner>> => {
 export const getHomepageGlobal = cache(async (): Promise<Homepage> => {
   const payload = await getPayloadClient()
   return (await payload.findGlobal({ slug: 'homepage', depth: 2 })) as Homepage
+})
+
+/**
+ * The Grand Angle page's curated dossiers, in order (vh.ma's page is hand-arranged). Depth 3:
+ * global → article → category → parent, for the article URLs. Empty when not curated.
+ */
+export const getGrandAngleDossiers = cache(async (): Promise<Article[]> => {
+  const payload = await getPayloadClient()
+  const g = await payload.findGlobal({ slug: 'grand-angle', depth: 3 })
+  return ((g.dossiers ?? []) as (Article | number)[]).filter(
+    (a): a is Article => typeof a === 'object' && a !== null && a._status === 'published',
+  )
 })
 
 export const getSiteSettings = cache(async (): Promise<SiteSetting> => {
@@ -210,8 +306,8 @@ export const getCategoryPage = cache(
     const payload = await getPayloadClient()
     const result = await payload.find({
       collection: 'articles',
-      where: { and: [{ category: { in: ids } }, { _status: { equals: 'published' } }] },
-      sort: '-publishedAt',
+      where: { and: [inCategories(ids), { _status: { equals: 'published' } }] },
+      sort: BY_DATE,
       limit: pageSize,
       page,
       depth: 2,
@@ -223,6 +319,30 @@ export const getCategoryPage = cache(
       totalPages: result.totalPages,
       page: result.page ?? page,
     }
+  },
+)
+
+/** A byline by its slug (vh.ma's /author/<slug>/). */
+export const getAuthorBySlug = cache(async (slug: string): Promise<Author | null> => {
+  const payload = await getPayloadClient()
+  const res = await payload.find({ collection: 'authors', where: { slug: { equals: slug } }, limit: 1, depth: 0 })
+  return (res.docs[0] as Author) ?? null
+})
+
+/** One page of a byline's published articles, newest first — vh.ma's author archive. */
+export const getAuthorPage = cache(
+  async (authorId: number, page: number, pageSize: number): Promise<PagedArticles> => {
+    const payload = await getPayloadClient()
+    const result = await payload.find({
+      collection: 'articles',
+      where: { and: [{ signature: { equals: authorId } }, { _status: { equals: 'published' } }] },
+      sort: BY_DATE,
+      limit: pageSize,
+      page,
+      depth: 2,
+      select: CARD_SELECT,
+    })
+    return { docs: result.docs as Article[], totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page ?? page }
   },
 )
 
@@ -246,7 +366,7 @@ export const getRelatedArticles = cache(
           { _status: { equals: 'published' } },
         ],
       },
-      sort: '-publishedAt',
+      sort: BY_DATE,
       limit,
       depth: 2,
       select: CARD_SELECT,
@@ -264,7 +384,7 @@ export async function getAllPublishedArticles(): Promise<Article[]> {
     const res = await payload.find({
       collection: 'articles',
       where: { _status: { equals: 'published' } },
-      sort: '-publishedAt',
+      sort: BY_DATE,
       limit: 500,
       page,
       depth: 2,
@@ -291,7 +411,7 @@ export const getIssueBySlug = cache(async (slug: string): Promise<MagazineIssue 
     collection: 'magazine-issues',
     where: { slug: { equals: slug } },
     limit: 1,
-    depth: 1,
+    depth: ISSUE_DEPTH,
   })
   return (res.docs[0] as MagazineIssue) ?? null
 })
@@ -299,6 +419,6 @@ export const getIssueBySlug = cache(async (slug: string): Promise<MagazineIssue 
 /** All issues, newest first, for the Les Unes archive. */
 export const getAllIssues = cache(async (): Promise<MagazineIssue[]> => {
   const payload = await getPayloadClient()
-  const res = await payload.find({ collection: 'magazine-issues', sort: '-number', limit: 500, depth: 1 })
+  const res = await payload.find({ collection: 'magazine-issues', sort: '-number', limit: 500, depth: ISSUE_DEPTH })
   return res.docs as MagazineIssue[]
 })

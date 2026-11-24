@@ -133,6 +133,27 @@ export const Articles: CollectionConfig = {
       },
     },
     {
+      // WordPress files a post under several categories; its URL uses one. The others still list
+      // it — on their category pages and in homepage blocks (People, Vidéos, Chroniques cigare…).
+      name: 'secondaryCategories',
+      type: 'relationship',
+      relationTo: 'categories',
+      hasMany: true,
+      label: 'Autres rubriques',
+      admin: {
+        position: 'sidebar',
+        description: 'L’article apparaît aussi dans ces rubriques, sans changer son URL.',
+      },
+    },
+    {
+      // The byline, as vh.ma prints it (distinct from `author`, the account that edits it).
+      name: 'signature',
+      type: 'relationship',
+      relationTo: 'authors',
+      label: 'Signature',
+      admin: { position: 'sidebar' },
+    },
+    {
       name: 'tags',
       type: 'relationship',
       relationTo: 'tags',

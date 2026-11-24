@@ -66,8 +66,8 @@ function applyNoindex(response: NextResponse, host: string): NextResponse {
   return response
 }
 
-/** `{base}/page/{n}/` for the home (base ''), a category or a tag archive. */
-const WP_PAGED = /^((?:\/category|\/tag)\/.+?)?\/page\/(\d{1,4})\/?$/
+/** `{base}/page/{n}/` for the home (base ''), a category, a tag or an author archive. */
+const WP_PAGED = /^((?:\/category|\/tag|\/author)\/.+?)?\/page\/(\d{1,4})\/?$/
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
@@ -108,7 +108,8 @@ export async function proxy(request: NextRequest) {
     const page = Number(paged[2])
     let to: string | null = null
     if (base === '') to = '/'
-    else if (base.startsWith('/category/')) to = page > 1 ? `${base}/?page=${page}` : `${base}/`
+    // Author archives exist here too since 2026-11-24 (/author/<slug>/, vh.ma's bylines).
+    else if (base.startsWith('/category/') || base.startsWith('/author/')) to = page > 1 ? `${base}/?page=${page}` : `${base}/`
     else if (base.startsWith('/tag/')) to = (await lookupRedirect(origin, `${base}/`))?.to ?? null
     if (to) return applyNoindex(NextResponse.redirect(new URL(to, origin), 301), host)
   }

@@ -16,7 +16,11 @@ import pg from 'pg'
  * table there. Rehearsed against a local copy by scripts/verify-push-archive.mjs.
  *
  *   1. Refuses: a target that is one of the two local working databases, a --confirm that is not
- *      the target's host name, a source whose applied migrations differ from this repo's.
+ *      the target's host name, a source whose applied migrations differ from this repo's, and a
+ *      target holding a migration the source lacks — the deployed code expects that schema, and
+ *      the restore would drop it (2026-11-24: the back office's migration, applied by production's
+ *      build at 11:32, was dropped by the 12:33 push and article pages answered 500 until it was
+ *      re-applied by hand).
  *   2. pg_dump of vh_migration (custom format, no owners or grants) into a temporary folder.
  *   3. pg_restore --clean --if-exists --single-transaction: the target is either fully replaced
  *      or, on any error, left exactly as it was.
@@ -72,7 +76,10 @@ async function main() {
 
   const source = await snapshot(SOURCE)
   const repo = repoMigrations()
-  if (source.migrations.join() !== repo.join()) {
+  // As sets: after two branches merge, a database applies their migrations in the order it met
+  // them, not the repo's (vh_migration ran the back office's 092503 after the parity ones).
+  const asSet = (names: string[]) => [...names].sort().join()
+  if (asSet(source.migrations) !== asSet(repo)) {
     throw new Error(`refusing: vh_migration has migrations [${source.migrations}] but the repo has [${repo}] — run pnpm migrate on it first`)
   }
   let adminEmail: string | undefined
@@ -91,6 +98,13 @@ async function main() {
   }
 
   const before = await snapshot(target).catch(() => null)
+  const onlyTarget = (before?.migrations ?? []).filter((m) => !source.migrations.includes(m))
+  if (onlyTarget.length) {
+    throw new Error(
+      `refusing: the target has migrations the archive lacks [${onlyTarget}] — the code deployed there expects them. ` +
+        'Merge that code here and run pnpm migrate on vh_migration first.',
+    )
+  }
   console.log(
     `target ${t.hostname}/${targetDb}: ${before ? `${before.counts.articles ?? 0} articles, ${before.counts.users ?? 0} users` : 'empty or unreadable'}` +
       ` → ${source.counts.articles} articles, ${source.counts.media} media, ${source.counts.magazine_issues} issues, ${source.counts.redirects} redirects`,
@@ -112,7 +126,7 @@ async function main() {
 
   const after = await snapshot(target)
   const diffs = Object.keys({ ...source.counts, ...after.counts }).filter((k) => source.counts[k] !== after.counts[k])
-  if (after.migrations.join() !== source.migrations.join()) throw new Error(`migrations differ after restore: [${after.migrations}]`)
+  if (asSet(after.migrations) !== asSet(source.migrations)) throw new Error(`migrations differ after restore: [${after.migrations}]`)
   if (diffs.length) throw new Error(`row counts differ after restore: ${diffs.map((k) => `${k} ${source.counts[k]}→${after.counts[k]}`).join(', ')}`)
   console.log(`restored: ${Object.keys(after.counts).length} tables, every row count equal to vh_migration; migrations equal`)
 

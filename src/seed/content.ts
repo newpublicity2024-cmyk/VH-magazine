@@ -60,6 +60,16 @@ export const CATEGORIES: SeedCategory[] = [
 ]
 
 export const ARTICLES: SeedArticle[] = [
+  // The primary nav's last "Les Couv's" entry links to this post, as on vh.ma (slug verbatim,
+  // typo included). Dated as live, so it stays out of the homepage's recent blocks.
+  {
+    title: 'Découvrez en ligne et gratuitement le best of de VH magazine depuis 2002',
+    slug: 'decouvrez-en-ligne-et-gratuitement-le-best-of-de-vh-magazinedepuis-2002',
+    category: 'actualite-news-express-maroc',
+    date: '28/03/2020',
+    views: 15,
+    excerpt: 'Les meilleurs numéros de VH Magazine, à lire en ligne gratuitement.',
+  },
   // ── Actu (spec §5.1) ──
   {
     title: 'Le ballon de la « Main de Dieu » mis aux enchères à Londres',

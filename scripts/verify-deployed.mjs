@@ -8,9 +8,10 @@
  * --canonical  the origin canonicals and sitemaps must name (NEXT_PUBLIC_SERVER_URL)
  * --media-origin  when given, a legacy upload the database does not know must 302 there;
  *              when omitted it must 404 (MEDIA_ORIGIN unset, or the post-cutover loop guard)
- * --redirects-db  a local database holding the same redirects (postgres://localhost/vh_migration):
- *              --redirects-sample of its rows, spread over the table, must 301 to their target
- *              (LAUNCH.md step 4; default sample 400)
+ * --redirects-db  a local database holding the same data (postgres://localhost/vh_migration):
+ *              --redirects-sample of its redirect rows, spread over the table, must 301 to their
+ *              target (LAUNCH.md step 4; default sample 400), and a sampled category page that
+ *              shows no article must hold none there either
  * A protected deployment needs VERCEL_AUTOMATION_BYPASS_SECRET in the environment
  * (Vercel → Settings → Deployment Protection → Protection Bypass for Automation).
  *
@@ -131,12 +132,43 @@ for (const loc of articles) {
 }
 
 // ---------------------------------------------------------------- categories
+const EMPTY_CATEGORY = 'Aucun article dans cette catégorie' // category/[...path]/page.tsx
+let listedCategories = 0
+const emptyCategories = []
 for (const loc of categories) {
   const r = await get(onBase(loc))
   timings.push([new URL(loc).pathname, r.ms])
   if (r.status !== 200) { problem(`${loc}: status ${r.status}`); continue }
   if (canonicalOf(r.text) !== loc) problem(`${loc}: canonical ${canonicalOf(r.text)}`)
-  if (cardCount(r.text) < 1) problem(`${loc}: no article card`)
+  // The archive has categories without articles (32 of 130 on 2026-11-24: 20 empty on vh.ma too,
+  // e.g. fashion/beauty; 12 whose posts all carry another category in their URL — an article has
+  // one category here). Those must show the page's designed empty state and, with a local copy of
+  // the data (--redirects-db), really be empty there. At least one category must list articles
+  // (below), so the listing itself is always exercised.
+  if (cardCount(r.text) >= 1) listedCategories++
+  else if (!noScripts(r.text).includes(EMPTY_CATEGORY)) problem(`${loc}: no article card and no empty-state text`)
+  else emptyCategories.push(loc)
+}
+if (!listedCategories) {
+  // Every sampled category was empty: walk the rest of the sitemap's categories for one that lists.
+  for (const loc of locs.filter((l) => new URL(l).pathname.startsWith('/category/') && !categories.includes(l))) {
+    const r = await get(onBase(loc))
+    if (r.status === 200 && cardCount(r.text) >= 1) { listedCategories++; break }
+  }
+  if (!listedCategories) problem('no category page lists an article')
+}
+if (emptyCategories.length && REDIRECTS_DB) {
+  const { default: pg } = await import('pg')
+  const c = new pg.Client({ connectionString: REDIRECTS_DB })
+  await c.connect()
+  for (const loc of emptyCategories) {
+    const slug = new URL(loc).pathname.split('/').filter(Boolean).at(-1)
+    const n = Number((await c.query(
+      `select count(*) from articles a join categories k on k.id = a.category_id where k.slug = $1 and a._status = 'published'`, [slug],
+    )).rows[0].count)
+    if (n) problem(`${loc}: shows no article, but the database holds ${n} published in it`)
+  }
+  await c.end()
 }
 
 // ---------------------------------------------------------------- search
@@ -216,7 +248,7 @@ if (REDIRECTS_DB) {
 const slow = timings.filter(([, ms]) => ms > 3000)
 console.error(
   `  ${BASE}: ${locs.length} sitemap URLs (${deep.length} three-segment articles); checked ` +
-    `${articles.length} articles, ${categories.length} categories, search, feeds, 404, legacy upload, optimizer, admin` +
+    `${articles.length} articles, ${categories.length} categories (${emptyCategories.length} empty, shown as such), search, feeds, 404, legacy upload, optimizer, admin` +
     (REDIRECTS_DB ? `, ${redirectsChecked} redirects` : ''),
 )
 console.error(`  response times (ms): ${timings.map(([p, ms]) => `${p.length > 40 ? '…' + p.slice(-38) : p} ${ms}`).join(' · ')}`)

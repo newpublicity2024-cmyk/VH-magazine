@@ -72,6 +72,7 @@ export interface Config {
     'magazine-issues': MagazineIssue;
     categories: Category;
     tags: Tag;
+    authors: Author;
     banners: Banner;
     'contact-messages': ContactMessage;
     'newsletter-subscribers': NewsletterSubscriber;
@@ -89,6 +90,7 @@ export interface Config {
     'magazine-issues': MagazineIssuesSelect<false> | MagazineIssuesSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
+    authors: AuthorsSelect<false> | AuthorsSelect<true>;
     banners: BannersSelect<false> | BannersSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
@@ -105,10 +107,12 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     homepage: Homepage;
+    'grand-angle': GrandAngle;
     'site-settings': SiteSetting;
   };
   globalsSelect: {
     homepage: HomepageSelect<false> | HomepageSelect<true>;
+    'grand-angle': GrandAngleSelect<false> | GrandAngleSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
@@ -182,6 +186,11 @@ export interface Article {
    * Détermine l’URL de l’article, y compris la rubrique parente.
    */
   category: number | Category;
+  /**
+   * L’article apparaît aussi dans ces rubriques, sans changer son URL.
+   */
+  secondaryCategories?: (number | Category)[] | null;
+  signature?: (number | null) | Author;
   tags?: (number | Tag)[] | null;
   /**
    * Format paysage 16:9 pour les cartes.
@@ -250,6 +259,20 @@ export interface Category {
     canonicalURL?: string | null;
     noIndex?: boolean | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors".
+ */
+export interface Author {
+  id: number;
+  name: string;
+  /**
+   * L’adresse de sa page : /author/<identifiant>/ (celle de vh.ma pour les signatures migrées).
+   */
+  slug: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -379,6 +402,11 @@ export interface MagazineIssue {
   summary?: string | null;
   pdf?: (number | null) | Media;
   publishedAt: string;
+  /**
+   * Si le numéro est présenté par un article, son lien mène à cet article.
+   */
+  article?: (number | null) | Article;
+  viewCount?: number | null;
   /**
    * Généré depuis le titre. Le modifier sur un article publié crée une redirection.
    */
@@ -513,6 +541,10 @@ export interface PayloadLockedDocument {
         value: number | Tag;
       } | null)
     | ({
+        relationTo: 'authors';
+        value: number | Author;
+      } | null)
+    | ({
         relationTo: 'banners';
         value: number | Banner;
       } | null)
@@ -583,6 +615,8 @@ export interface ArticlesSelect<T extends boolean = true> {
   body?: T;
   excerpt?: T;
   category?: T;
+  secondaryCategories?: T;
+  signature?: T;
   tags?: T;
   featuredImage?: T;
   isVideo?: T;
@@ -690,6 +724,8 @@ export interface MagazineIssuesSelect<T extends boolean = true> {
   summary?: T;
   pdf?: T;
   publishedAt?: T;
+  article?: T;
+  viewCount?: T;
   slug?: T;
   seo?:
     | T
@@ -727,6 +763,16 @@ export interface CategoriesSelect<T extends boolean = true> {
  * via the `definition` "tags_select".
  */
 export interface TagsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors_select".
+ */
+export interface AuthorsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   updatedAt?: T;
@@ -873,6 +919,19 @@ export interface Homepage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "grand-angle".
+ */
+export interface GrandAngle {
+  id: number;
+  /**
+   * Dans l’ordre d’affichage. Vide : la page liste la rubrique Grand Angle, les plus récents d’abord.
+   */
+  dossiers?: (number | Article)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
  */
 export interface SiteSetting {
@@ -910,6 +969,16 @@ export interface HomepageSelect<T extends boolean = true> {
         linkLabel?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "grand-angle_select".
+ */
+export interface GrandAngleSelect<T extends boolean = true> {
+  dossiers?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

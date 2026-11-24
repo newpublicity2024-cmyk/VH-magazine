@@ -44,6 +44,9 @@ type Converted = {
   featured: string | null
   seo: { title: string | null; description: string | null }
   body: { root?: LexNode } | LexNode | null
+  /** An article WordPress also files under sommaire (converter of 2026-11-24 on). */
+  inSommaire?: boolean
+  categoryPath?: string
 }
 
 const arg = (name: string): string | undefined => {
@@ -76,11 +79,21 @@ async function main() {
   const dbName = new URL(process.env.DATABASE_URL || 'postgres://unset/unset').pathname.slice(1)
   if (dbName !== 'vh_migration') throw new Error(`refusing to import into "${dbName}" — only vh_migration`)
 
-  const issues = readFileSync(W('converted.jsonl'), 'utf8')
+  const converted = readFileSync(W('converted.jsonl'), 'utf8')
     .split('\n')
     .filter(Boolean)
     .map((l) => JSON.parse(l) as Converted)
-    .filter((r) => r.kind === 'issue')
+  const sommairePosts = converted.filter((r) => r.kind === 'issue')
+  const sommaireNumbers = new Set(sommairePosts.map((r) => issueNumber(r.title, r.slug)))
+  // Since N°202 vh.ma publishes an issue as an Actu post filed under sommaire too. Such a post
+  // is an issue whose page is the article (`article` relation) — but only for a number no
+  // /sommaire/ post carries, so an Actu teaser can never take an existing issue's URL.
+  const articleIssues = converted.filter((r) => {
+    if (r.kind !== 'article' || !r.inSommaire) return false
+    const n = issueNumber(r.title, r.slug)
+    return n !== null && !sommaireNumbers.has(n)
+  })
+  const issues = [...sommairePosts, ...articleIssues]
   const reportFile = W('import-issues.jsonl')
   writeFileSync(reportFile, '')
   const report = (e: Record<string, unknown>) => appendFileSync(reportFile, JSON.stringify(e) + '\n')
@@ -129,6 +142,16 @@ async function main() {
       report({ number, wpId: primary.wpId, error: 'cover not in Media', featured: primary.featured })
       continue
     }
+    // An issue presented by an Actu post links to that article, and lives at its URL.
+    let article: number | null = null
+    if (primary.kind === 'article') {
+      article = (await query<{ id: number }>('select id from articles where slug = $1', [primary.slug]))[0]?.id ?? null
+      if (!article) {
+        errors.push(`N°${number} (post ${primary.wpId}): its article ${primary.slug} is not imported`)
+        report({ number, wpId: primary.wpId, error: 'article not imported', slug: primary.slug })
+        continue
+      }
+    }
     const data = {
       number,
       title: primary.title,
@@ -137,8 +160,9 @@ async function main() {
       summary: summaryOf(primary.body) || null,
       publishedAt: primary.publishedAt,
       seo: { description: primary.seo.description ?? undefined },
+      article,
     }
-    const url = `/sommaire/${primary.slug}/`
+    const url = article ? `/${primary.categoryPath}/${primary.slug}/` : `/sommaire/${primary.slug}/`
     const have = existing.get(number)
     try {
       if (!have) {
@@ -150,6 +174,7 @@ async function main() {
           have.slug === data.slug &&
           (typeof have.cover === 'object' ? have.cover?.id : have.cover) === cover &&
           (have.summary ?? null) === data.summary &&
+          ((typeof have.article === 'object' ? have.article?.id : have.article) ?? null) === article &&
           new Date(have.publishedAt).getTime() === new Date(data.publishedAt).getTime()
         if (same) unchanged++
         else {

@@ -12,11 +12,13 @@ import { Banners } from './collections/Banners'
 import { Categories } from './collections/Categories'
 import { ContactMessages } from './collections/ContactMessages'
 import { MagazineIssues } from './collections/MagazineIssues'
+import { Authors } from './collections/Authors'
 import { Media } from './collections/Media'
 import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
 import { Redirects } from './collections/Redirects'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
+import { GrandAngle } from './globals/GrandAngle'
 import { Homepage } from './globals/Homepage'
 import { SiteSettings } from './globals/SiteSettings'
 import { articleFeatures } from './lib/editor-config'
@@ -139,13 +141,14 @@ export default buildConfig({
     MagazineIssues,
     Categories,
     Tags,
+    Authors,
     Banners,
     ContactMessages,
     NewsletterSubscribers,
     Redirects,
     Users,
   ],
-  globals: [Homepage, SiteSettings],
+  globals: [Homepage, GrandAngle, SiteSettings],
   // The journalist toolset lives in lib/editor-config.ts so it can be inspected without
   // booting Payload (gate BO-G6); every node it can produce renders in RichTextBody (BO-G7).
   editor: lexicalEditor({

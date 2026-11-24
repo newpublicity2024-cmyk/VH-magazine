@@ -25,14 +25,16 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Sport', href: '/category/sport/' },
   { label: 'Vidéos', href: STATIC_ROUTES.vhTv },
   {
-    label: "Les Couv's",
+    label: 'Les Couv’s', // as vh.ma prints it
     href: null,
     children: [
       { label: 'Les Unes de VH', href: STATIC_ROUTES.lesUnes },
-      { label: "La Couv'", href: '/category/la-couv/' },
+      // vh.ma prints the typographic apostrophe (WordPress curls menu titles).
+      { label: 'La Couv’', href: '/category/la-couv/' },
       {
+        // As on vh.ma: the menu item links to the post itself (its slug, typo included).
         label: 'Découvrez en ligne et gratuitement le best of de VH magazine depuis 2002',
-        href: STATIC_ROUTES.lesUnes,
+        href: '/actualite-news-express-maroc/decouvrez-en-ligne-et-gratuitement-le-best-of-de-vh-magazinedepuis-2002/',
       },
     ],
   },
