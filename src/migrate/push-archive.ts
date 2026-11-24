@@ -76,7 +76,10 @@ async function main() {
 
   const source = await snapshot(SOURCE)
   const repo = repoMigrations()
-  if (source.migrations.join() !== repo.join()) {
+  // As sets: after two branches merge, a database applies their migrations in the order it met
+  // them, not the repo's (vh_migration ran the back office's 092503 after the parity ones).
+  const asSet = (names: string[]) => [...names].sort().join()
+  if (asSet(source.migrations) !== asSet(repo)) {
     throw new Error(`refusing: vh_migration has migrations [${source.migrations}] but the repo has [${repo}] — run pnpm migrate on it first`)
   }
   let adminEmail: string | undefined
@@ -123,7 +126,7 @@ async function main() {
 
   const after = await snapshot(target)
   const diffs = Object.keys({ ...source.counts, ...after.counts }).filter((k) => source.counts[k] !== after.counts[k])
-  if (after.migrations.join() !== source.migrations.join()) throw new Error(`migrations differ after restore: [${after.migrations}]`)
+  if (asSet(after.migrations) !== asSet(source.migrations)) throw new Error(`migrations differ after restore: [${after.migrations}]`)
   if (diffs.length) throw new Error(`row counts differ after restore: ${diffs.map((k) => `${k} ${source.counts[k]}→${after.counts[k]}`).join(', ')}`)
   console.log(`restored: ${Object.keys(after.counts).length} tables, every row count equal to vh_migration; migrations equal`)
 
