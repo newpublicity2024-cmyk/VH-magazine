@@ -69,6 +69,14 @@ const GROUPS: Array<{ title: string; parts: Part[] }> = [
         hint: 'Relient les articles entre eux',
         count: 'tags',
       },
+      {
+        key: 'authors',
+        href: `${ADMIN}/collections/authors`,
+        icon: <Icons.pen />,
+        label: 'Signatures',
+        hint: 'Les noms qui signent les articles',
+        count: 'authors',
+      },
     ],
   },
   {
@@ -80,6 +88,13 @@ const GROUPS: Array<{ title: string; parts: Part[] }> = [
         icon: <Icons.home />,
         label: 'Page d’accueil',
         hint: 'Chroniques cigare et dossiers',
+      },
+      {
+        key: 'grand-angle',
+        href: `${ADMIN}/globals/grand-angle`,
+        icon: <Icons.book />,
+        label: 'Page Grand Angle',
+        hint: 'Les dossiers mis en avant',
       },
       {
         key: 'banners',

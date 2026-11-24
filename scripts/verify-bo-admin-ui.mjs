@@ -51,6 +51,7 @@ const PARTS = {
   'magazine-issues': 'magazine_issues',
   categories: 'categories',
   tags: 'tags',
+  authors: 'authors', // Signatures (parity pass, 2026-11-24)
   banners: 'banners',
   'contact-messages': 'contact_messages',
   'newsletter-subscribers': 'newsletter_subscribers',
@@ -110,7 +111,7 @@ print({ id: d.id })
           ]),
         )
         const partKeys = parts.map((p) => p[0])
-        const expectedParts = [...Object.keys(PARTS), 'homepage', 'site-settings']
+        const expectedParts = [...Object.keys(PARTS), 'homepage', 'grand-angle', 'site-settings']
         check(
           sameSet(partKeys, expectedParts),
           `site panel doors ${JSON.stringify(partKeys)}, expected ${JSON.stringify(expectedParts)}`,
@@ -120,6 +121,7 @@ print({ id: d.id })
         const expectedNav = [
           ...Object.keys(PARTS).map((k) => `nav-${k}`),
           'nav-global-homepage',
+          'nav-global-grand-angle',
           'nav-global-site-settings',
         ]
         check(

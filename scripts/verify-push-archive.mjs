@@ -3,7 +3,8 @@
  *
  * Targets are scratch copies of vh_magazine — a seeded database shaped like the Neon production
  * branch today — and are always dropped. Nothing leaves this machine.
- *   1. refusals: --confirm naming another host, and a local working database as target;
+ *   1. refusals: --confirm naming another host, a local working database as target, and a
+ *      target holding a migration the archive lacks (control after step 2: nothing changes);
  *   2. atomicity control: a target holding a view on `articles` makes `--clean` fail midway; the
  *      push must exit non-zero and leave every table of the target exactly as it was;
  *   3. the real rehearsal: every public table's row count equals vh_migration's (counted here,
@@ -60,6 +61,16 @@ if (r.status === 0) fail('control: a restore that cannot drop `articles` still r
 const ctlAfter = await counts(dbs[0])
 if (!same(ctlBefore, ctlAfter)) fail('control: a failed push changed the target — the restore is not atomic')
 console.error(`  control: failed push left the target unchanged (${ctlAfter.articles} seed articles)`)
+// A target whose deployed code applied a migration the archive lacks must be refused, untouched.
+execFileSync('psql', ['-X', '-q', '-d', dbs[0], '-c',
+  "insert into payload_migrations (name, batch, created_at, updated_at) values ('29991231_000000_deployed_only', 99, now(), now())"])
+const extraBefore = await counts(dbs[0])
+r = push(dbs[0], 'localhost')
+if (r.status === 0 || !/refusing: the target has migrations the archive lacks \[29991231_000000_deployed_only\]/.test(r.stderr + r.stdout)) {
+  fail(`a target with a migration the archive lacks was not refused: ${(r.stderr || r.stdout).slice(-300)}`)
+}
+if (!same(extraBefore, await counts(dbs[0]))) fail('the refused push changed the target')
+console.error('  control: a target holding a migration the archive lacks is refused and left unchanged')
 
 // 3. rehearsal
 execFileSync('createdb', ['-T', 'vh_magazine', dbs[1]])
