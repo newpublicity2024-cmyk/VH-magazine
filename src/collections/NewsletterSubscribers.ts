@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAdminOrEditor } from '../access'
+import { hiddenFromJournalists, isAdminOrEditor } from '../access'
 
 /**
  * Newsletter signups (spec §5.4.3).
@@ -19,7 +19,9 @@ export const NewsletterSubscribers: CollectionConfig = {
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['email', 'source', 'confirmed', 'createdAt'],
-    group: 'Administration',
+    group: 'Lecteurs',
+    hideAPIURL: true,
+    hidden: hiddenFromJournalists,
   },
   access: {
     read: isAdminOrEditor,

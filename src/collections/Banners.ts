@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isAdminOrEditor } from '../access'
+import { anyone, hiddenFromJournalists, isAdminOrEditor } from '../access'
 import { revalidateAfterChange, revalidateAfterDelete } from '../hooks/revalidate'
 
 /**
@@ -17,7 +17,9 @@ export const Banners: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['key', 'title', 'active'],
-    group: 'Contenu',
+    group: 'Mise en page',
+    hideAPIURL: true,
+    hidden: hiddenFromJournalists,
   },
   access: {
     read: anyone,

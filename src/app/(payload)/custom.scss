@@ -1,14 +1,7 @@
 /*
  * Payload admin overrides — VH Magazine.
- * LTR, French. Only the brand accent is themed; everything else stays stock so
- * Payload upgrades don't fight custom CSS.
+ *
+ * The back office's whole theme (WordPress structure, VH colours and type) lives in
+ * src/backoffice/styles/admin.scss; this file only brings it into Payload's root layout.
  */
-:root {
-  --theme-success-500: #1f9d55;
-  --color-base-800: #111111;
-}
-
-.payload-logo,
-.graphic-icon {
-  max-width: 160px;
-}
+@use '../../backoffice/styles/admin';

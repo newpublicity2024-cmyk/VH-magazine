@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isAdminOrEditor, isAuthenticated } from '../access'
+import { editorialOnly } from '../fields/visibility'
 
 /**
  * Uploads. Files live on local disk in dev (./media) and in Vercel Blob once
@@ -13,8 +14,13 @@ import { anyone, isAdminOrEditor, isAuthenticated } from '../access'
  */
 export const Media: CollectionConfig = {
   slug: 'media',
-  labels: { singular: 'Média', plural: 'Médias' },
-  admin: { group: 'Contenu', useAsTitle: 'filename' },
+  labels: { singular: 'Média', plural: 'Médiathèque' },
+  admin: {
+    group: 'Rédaction',
+    useAsTitle: 'filename',
+    defaultColumns: ['filename', 'alt', 'credit', 'updatedAt'],
+    hideAPIURL: true,
+  },
   access: {
     read: anyone,
     create: isAuthenticated,
@@ -40,7 +46,10 @@ export const Media: CollectionConfig = {
       type: 'text',
       label: 'Texte alternatif',
       required: true,
-      admin: { description: 'Décrit l’image pour les lecteurs d’écran et le référencement.' },
+      admin: {
+        description:
+          'Décrivez la photo en une phrase, ex. « Le nouveau Range Rover Sport devant la Tour Hassan ». Lue aux lecteurs malvoyants et par Google.',
+      },
     },
     {
       name: 'credit',
@@ -59,6 +68,7 @@ export const Media: CollectionConfig = {
       admin: {
         readOnly: true,
         position: 'sidebar',
+        condition: editorialOnly,
         description: 'Ancien chemin sur vh.ma, ex. wp-content/uploads/2024/03/photo.jpg',
       },
     },
@@ -67,7 +77,7 @@ export const Media: CollectionConfig = {
       type: 'number',
       label: 'ID WordPress',
       index: true,
-      admin: { readOnly: true, position: 'sidebar' },
+      admin: { readOnly: true, position: 'sidebar', condition: editorialOnly },
     },
   ],
 }

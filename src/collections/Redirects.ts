@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isAdminOrEditor } from '../access'
+import { anyone, hiddenFromJournalists, isAdminOrEditor } from '../access'
 
 /**
  * 301/302 map. Populated two ways:
@@ -18,7 +18,9 @@ export const Redirects: CollectionConfig = {
   admin: {
     useAsTitle: 'from',
     defaultColumns: ['from', 'to', 'permanent', 'source'],
-    group: 'Administration',
+    group: 'Réglages',
+    hideAPIURL: true,
+    hidden: hiddenFromJournalists,
     description: 'Ancienne URL → nouvelle URL. Créées automatiquement au changement de slug.',
   },
   access: {

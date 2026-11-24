@@ -24,6 +24,8 @@ yarn-error.log*
 # env
 .env
 .env*.local
+# back-office gate drivers (scripts/lib/backoffice.mjs runDriver writes and deletes them)
+.bo-driver-*.ts
 
 # payload local media (files live in object storage in production)
 /media

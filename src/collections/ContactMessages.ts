@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAdminOrEditor } from '../access'
+import { hiddenFromJournalists, isAdminOrEditor } from '../access'
 
 /**
  * Contact form submissions (spec §7).
@@ -15,7 +15,9 @@ export const ContactMessages: CollectionConfig = {
   admin: {
     useAsTitle: 'subject',
     defaultColumns: ['name', 'email', 'subject', 'createdAt'],
-    group: 'Administration',
+    group: 'Lecteurs',
+    hideAPIURL: true,
+    hidden: hiddenFromJournalists,
   },
   access: {
     read: isAdminOrEditor,
