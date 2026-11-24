@@ -56,7 +56,12 @@ export async function GET() {
   ]
 
   for (const c of categories) entries.push(urlEntry(absoluteUrl(categoryUrl(c as never)), null, '0.5'))
-  for (const i of issues) entries.push(urlEntry(absoluteUrl(issueUrl(i)), i.publishedAt, '0.5'))
+  // An issue presented by an article (N°202 onwards) lives at that article's URL, which the
+  // articles below already list: listing it here too put two identical <loc>s in the sitemap.
+  for (const i of issues) {
+    if (i.article) continue
+    entries.push(urlEntry(absoluteUrl(issueUrl(i)), i.publishedAt, '0.5'))
+  }
   for (const a of articles) {
     entries.push(urlEntry(absoluteUrl(articleUrl(a as never)), a.updatedAt || a.publishedAt, '0.8'))
   }
