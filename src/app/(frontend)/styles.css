@@ -1145,6 +1145,361 @@
     background-color: var(--color-canvas-3);
     color: var(--color-ink);
   }
+  /* The card's action. Accent on the hover grey is 4.21:1 (axe, BO-G22); the darker accent
+     keeps AA (5.4:1). A component class, not `text-accent`: that utility's layer outranks this. */
+  .vh-prose .vh-embed__action {
+    color: var(--color-accent);
+  }
+  .vh-prose .vh-embed:hover .vh-embed__action {
+    color: var(--color-accent-600);
+  }
+  /* Back-office editor nodes (GATES-BACKOFFICE BO-G7): h4, alignment, struck, sub/sup,
+     tables and galleries. Justified alignment is deliberately absent: Word pastes arrive
+     justified and vh.ma body copy stays ragged-right (RichTextBody). */
+  .vh-prose h4 {
+    margin-top: 28px;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.625rem;
+  }
+  .vh-prose h4 + * {
+    margin-top: 8px;
+  }
+  .vh-prose .vh-align-center {
+    text-align: center;
+  }
+  .vh-prose .vh-align-right {
+    text-align: right;
+  }
+  .vh-prose s {
+    text-decoration-thickness: 1px;
+  }
+  .vh-prose sub,
+  .vh-prose sup {
+    font-size: 0.75em;
+    line-height: 0;
+  }
+  .vh-prose .vh-table {
+    overflow-x: auto;
+    border-top: 2px solid var(--color-ink);
+  }
+  .vh-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+    line-height: 1.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .vh-prose th,
+  .vh-prose td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-hairline);
+    text-align: left;
+    vertical-align: top;
+  }
+  .vh-prose th {
+    font-weight: 600;
+    background-color: var(--color-canvas-2);
+  }
+  /* « Galerie photos » — six layouts (components/Gallery, gate BO-G23). `data-columns` is the
+     wide-screen count; a phone shows two at most. Grid and mosaic crop to one shape, the others
+     keep each photo's own proportions (next/image gives the img its width/height). */
+  .vh-prose .vh-gallery figure {
+    margin: 0;
+  }
+  .vh-prose .vh-gallery__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background-color: var(--color-canvas-2);
+  }
+  .vh-prose .vh-gallery--grid,
+  .vh-prose .vh-gallery--mosaic {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .vh-prose .vh-gallery--grid .vh-gallery__img,
+  .vh-prose .vh-gallery--mosaic .vh-gallery__img {
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+  .vh-prose .vh-gallery--mosaic > :first-child {
+    grid-column: 1 / -1;
+  }
+  .vh-prose .vh-gallery--mosaic > :first-child .vh-gallery__img {
+    aspect-ratio: 16 / 9;
+  }
+  .vh-prose .vh-gallery--masonry {
+    columns: 2;
+    column-gap: 8px;
+  }
+  .vh-prose .vh-gallery--masonry .vh-gallery__item {
+    break-inside: avoid;
+    margin-bottom: 8px;
+  }
+  .vh-prose .vh-gallery[data-columns='1'] {
+    grid-template-columns: minmax(0, 1fr);
+    columns: 1;
+  }
+  .vh-prose .vh-gallery--row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .vh-prose .vh-gallery__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  /* flex-grow is the photo's aspect ratio (inline): with a zero basis, one height per row. */
+  .vh-prose .vh-gallery__row > .vh-gallery__item {
+    flex-basis: 0;
+    min-width: 0;
+  }
+  .vh-prose .vh-gallery--stack {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  @media (min-width: 640px) {
+    .vh-prose .vh-gallery--grid[data-columns='3'],
+    .vh-prose .vh-gallery--mosaic[data-columns='3'] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .vh-prose .vh-gallery--grid[data-columns='4'] {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .vh-prose .vh-gallery--masonry[data-columns='3'] {
+      columns: 3;
+    }
+    .vh-prose .vh-gallery--masonry[data-columns='4'] {
+      columns: 4;
+    }
+  }
+  .vh-prose .vh-gallery__zoom {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: zoom-in;
+  }
+  .vh-prose .vh-gallery__zoom:focus-visible,
+  .vh-prose .vh-carousel__track:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  .vh-prose .vh-gallery-block > figcaption.vh-gallery-block__caption {
+    margin-top: 12px;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-ink-2);
+  }
+  /* Diaporama: a native scroll-snap track (swipe works before hydration), dark letterbox so
+     portrait and landscape photos share one frame. */
+  .vh-prose .vh-carousel__track {
+    display: flex;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .vh-prose .vh-carousel__track::-webkit-scrollbar {
+    display: none;
+  }
+  .vh-prose .vh-carousel__slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  .vh-prose .vh-carousel__media {
+    aspect-ratio: 3 / 2;
+    background-color: var(--color-band);
+  }
+  .vh-prose .vh-carousel__media .vh-gallery__zoom {
+    height: 100%;
+  }
+  .vh-prose .vh-carousel__media .vh-gallery__img {
+    height: 100%;
+    object-fit: contain;
+    background-color: transparent;
+  }
+  .vh-prose .vh-carousel__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .vh-prose .vh-carousel__count {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-2);
+  }
+  .vh-carousel__btn,
+  .vh-lightbox__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background-color var(--duration-hover) var(--ease-standard);
+  }
+  .vh-carousel__btn {
+    color: var(--color-ink);
+    background-color: var(--color-canvas-2);
+  }
+  .vh-carousel__btn:hover:not(:disabled) {
+    background-color: var(--color-canvas-3);
+  }
+  .vh-carousel__btn:disabled {
+    cursor: default;
+    opacity: 0.35;
+  }
+  .vh-carousel__btn:focus-visible,
+  .vh-lightbox__btn:focus-visible {
+    outline: 2px solid var(--color-accent-on-dark);
+    outline-offset: 2px;
+  }
+  .vh-chevron-flip {
+    rotate: 180deg;
+  }
+  /* The lightbox is a modal <dialog> rendered into <body>, so nothing here inherits .vh-prose. */
+  .vh-lightbox {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: var(--color-night-ink);
+    background-color: var(--color-band);
+  }
+  .vh-lightbox[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .vh-lightbox::backdrop {
+    background-color: var(--color-band);
+  }
+  .vh-lightbox__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+  }
+  .vh-lightbox__count {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-night-ink-2);
+  }
+  .vh-lightbox__btn {
+    color: var(--color-white);
+    background-color: var(--color-night-2);
+  }
+  .vh-lightbox__btn:hover {
+    background-color: var(--material-dark-solid);
+  }
+  .vh-lightbox__stage {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 0 16px;
+  }
+  .vh-lightbox__img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .vh-lightbox__nav {
+    position: absolute;
+    top: 50%;
+    translate: 0 -50%;
+  }
+  .vh-lightbox__nav--prev {
+    left: 16px;
+  }
+  .vh-lightbox__nav--next {
+    right: 16px;
+  }
+  .vh-lightbox__caption {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 12px 16px 16px;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    text-align: center;
+    color: var(--color-night-ink);
+  }
+  .vh-lightbox__credit {
+    margin-left: 8px;
+    color: var(--color-night-ink-2);
+  }
+  html[data-lightbox] {
+    overflow: hidden;
+  }
+  /* « Vidéo ou publication » players (components/SocialEmbed, gate BO-G22): each provider's
+     frame in its own shape, centred in the text column; Instagram and X set their height. */
+  .vh-prose .vh-player {
+    margin-inline: auto;
+  }
+  .vh-prose .vh-player--portrait {
+    max-width: 340px;
+  }
+  .vh-prose .vh-player--instagram {
+    max-width: 540px;
+  }
+  .vh-prose .vh-player--x {
+    max-width: 550px;
+  }
+  .vh-prose .vh-player--facebook.vh-player--post {
+    max-width: 500px;
+  }
+  .vh-prose .vh-player__frame {
+    position: relative;
+    background-color: var(--color-canvas-2);
+  }
+  .vh-prose .vh-player--landscape .vh-player__frame {
+    aspect-ratio: 16 / 9;
+  }
+  .vh-prose .vh-player--portrait .vh-player__frame {
+    aspect-ratio: 9 / 16;
+  }
+  .vh-prose .vh-player--landscape .vh-player__frame iframe,
+  .vh-prose .vh-player--portrait .vh-player__frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .vh-prose .vh-player--post .vh-player__frame iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+  }
+  .vh-prose .vh-player__caption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 16px;
+  }
+  .vh-prose .vh-player__caption a {
+    color: var(--color-ink-2);
+  }
   @media (min-width: 640px) {
     .vh-prose {
       font-size: 1.125rem;

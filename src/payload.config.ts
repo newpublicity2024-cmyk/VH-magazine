@@ -1,21 +1,5 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import {
-  BlockquoteFeature,
-  BlocksFeature,
-  BoldFeature,
-  FixedToolbarFeature,
-  HeadingFeature,
-  HorizontalRuleFeature,
-  InlineToolbarFeature,
-  ItalicFeature,
-  LinkFeature,
-  OrderedListFeature,
-  ParagraphFeature,
-  UnderlineFeature,
-  UnorderedListFeature,
-  UploadFeature,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { fr } from '@payloadcms/translations/languages/fr'
 import path from 'path'
@@ -23,7 +7,6 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-import { VideoEmbedBlock } from './blocks/VideoEmbed'
 import { Articles } from './collections/Articles'
 import { Banners } from './collections/Banners'
 import { Categories } from './collections/Categories'
@@ -38,6 +21,7 @@ import { Users } from './collections/Users'
 import { GrandAngle } from './globals/GrandAngle'
 import { Homepage } from './globals/Homepage'
 import { SiteSettings } from './globals/SiteSettings'
+import { articleFeatures } from './lib/editor-config'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -90,48 +74,108 @@ export default buildConfig({
     meta: {
       titleSuffix: ' — VH Magazine',
     },
+    /**
+     * Light only. The back-office theme (src/backoffice/styles/admin.scss) defines one palette;
+     * letting Payload switch to dark would mix its dark tokens into ours — on the sister site
+     * that put form text at 1.19:1 contrast. Pinning also removes the theme selector, so no
+     * stored preference can bring the mix back.
+     */
+    theme: 'light',
+    dateFormat: 'dd/MM/yyyy HH:mm',
+    components: {
+      graphics: {
+        Logo: '/backoffice/graphics#Logo',
+        Icon: '/backoffice/graphics#Icon',
+      },
+    },
+    /**
+     * The landing page, by role (GATES-BACKOFFICE.md). Payload 3.85's modular dashboard: each
+     * widget is a server component in src/backoffice/dashboard, and `defaultLayout` decides
+     * who sees what first. A journalist gets their own work and the way to publish it; an
+     * editor or admin gets the review queue, the newsroom's numbers and a door to every part of
+     * the site. Anyone can still rearrange their own dashboard from its menu.
+     */
+    dashboard: {
+      widgets: [
+        { slug: 'vh-welcome', label: 'Bienvenue', Component: '/backoffice/dashboard/Welcome#default', minWidth: 'medium' },
+        { slug: 'vh-stats', label: 'Chiffres', Component: '/backoffice/dashboard/Stats#default', minWidth: 'medium' },
+        { slug: 'vh-site', label: 'Gérer le site', Component: '/backoffice/dashboard/SitePanel#default', minWidth: 'medium' },
+        { slug: 'vh-review', label: 'À relire', Component: '/backoffice/dashboard/ReviewQueue#default', minWidth: 'small' },
+        { slug: 'vh-drafts', label: 'Brouillons', Component: '/backoffice/dashboard/Drafts#default', minWidth: 'small' },
+        { slug: 'vh-published', label: 'Publiés récemment', Component: '/backoffice/dashboard/Published#default', minWidth: 'small' },
+        { slug: 'vh-activity', label: 'Publications — 30 jours', Component: '/backoffice/dashboard/Activity#default', minWidth: 'medium' },
+        { slug: 'vh-popular', label: 'Les plus lus', Component: '/backoffice/dashboard/Popular#default', minWidth: 'small' },
+        { slug: 'vh-readers', label: 'Lecteurs', Component: '/backoffice/dashboard/Readers#default', minWidth: 'small' },
+        { slug: 'vh-guide', label: 'Comment publier', Component: '/backoffice/dashboard/Guide#default', minWidth: 'small' },
+      ],
+      defaultLayout: ({ req }) => {
+        const role = (req.user as { role?: string } | null)?.role
+        return role === 'admin' || role === 'editor'
+          ? [
+              { widgetSlug: 'vh-welcome', width: 'full' },
+              { widgetSlug: 'vh-stats', width: 'full' },
+              { widgetSlug: 'vh-review', width: 'medium' },
+              { widgetSlug: 'vh-activity', width: 'medium' },
+              { widgetSlug: 'vh-site', width: 'full' },
+              { widgetSlug: 'vh-published', width: 'medium' },
+              { widgetSlug: 'vh-popular', width: 'medium' },
+              { widgetSlug: 'vh-drafts', width: 'medium' },
+              { widgetSlug: 'vh-readers', width: 'medium' },
+            ]
+          : [
+              { widgetSlug: 'vh-welcome', width: 'full' },
+              { widgetSlug: 'vh-stats', width: 'full' },
+              { widgetSlug: 'vh-drafts', width: 'medium' },
+              { widgetSlug: 'vh-review', width: 'medium' },
+              { widgetSlug: 'vh-published', width: 'medium' },
+              { widgetSlug: 'vh-guide', width: 'medium' },
+            ]
+      },
+    },
   },
+  // Order is the nav's order (Payload groups by first appearance): Rédaction, Classement,
+  // Mise en page, Lecteurs, Réglages — WordPress's menu, in the newsroom's words.
   collections: [
     Articles,
-    Authors,
+    Media,
+    MagazineIssues,
     Categories,
     Tags,
-    MagazineIssues,
+    Authors,
     Banners,
-    NewsletterSubscribers,
     ContactMessages,
+    NewsletterSubscribers,
     Redirects,
-    Media,
     Users,
   ],
   globals: [Homepage, GrandAngle, SiteSettings],
-  // Trimmed to what a non-technical journalist actually uses. h2/h3 only —
-  // the page's single h1 is the article title, and letting an editor drop
-  // another h1 into the body would break the document outline (spec §9).
+  // The journalist toolset lives in lib/editor-config.ts so it can be inspected without
+  // booting Payload (gate BO-G6); every node it can produce renders in RichTextBody (BO-G7).
   editor: lexicalEditor({
-    features: () => [
-      ParagraphFeature(),
-      HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }),
-      BoldFeature(),
-      ItalicFeature(),
-      UnderlineFeature(),
-      LinkFeature(),
-      UnorderedListFeature(),
-      OrderedListFeature(),
-      BlockquoteFeature(),
-      UploadFeature(),
-      // In-text YouTube videos, rendered as the click-to-load facade (RichTextBody);
-      // the migrated WordPress articles carry their embeds as this block (round 2b).
-      BlocksFeature({ blocks: [VideoEmbedBlock] }),
-      HorizontalRuleFeature(),
-      FixedToolbarFeature(),
-      InlineToolbarFeature(),
-    ],
+    features: () => articleFeatures(),
   }),
   // French-only admin for the editorial team (spec §1).
   i18n: {
     supportedLanguages: { fr },
     fallbackLanguage: 'fr',
+    // Payload's French says « Créer un(e) nouveau ou nouvelle » and « Choisir parmi les
+    // existant(e)s ». WordPress says « Ajouter », and so does the newsroom.
+    translations: {
+      fr: {
+        general: {
+          createNew: 'Ajouter',
+          createNewLabel: 'Ajouter : {{label}}',
+          creatingNewLabel: 'Nouveau : {{label}}',
+        },
+        fields: {
+          addNew: 'Ajouter',
+          addNewLabel: 'Ajouter : {{label}}',
+          chooseFromExisting: 'Choisir dans la médiathèque',
+          chooseLabel: 'Choisir : {{label}}',
+          uploadNewLabel: 'Téléverser : {{label}}',
+        },
+      },
+    },
   },
   secret: process.env.PAYLOAD_SECRET || '',
   cookiePrefix: 'vh',

@@ -1,13 +1,13 @@
 import type { GlobalConfig } from 'payload'
 
-import { anyone, isAdminOrEditor } from '../access'
+import { anyone, hiddenFromJournalists, isAdminOrEditor } from '../access'
 import { revalidateGlobalAfterChange } from '../hooks/revalidate'
 
 /** Site-wide identity: socials, default OG image, the media kit PDF (spec §4.1, §9). */
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Paramètres du site',
-  admin: { group: 'Administration' },
+  admin: { group: 'Réglages', hideAPIURL: true, hidden: hiddenFromJournalists },
   access: { read: anyone, update: isAdminOrEditor },
   hooks: { afterChange: [revalidateGlobalAfterChange] },
   fields: [

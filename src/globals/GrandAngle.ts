@@ -1,6 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
-import { anyone, isAdminOrEditor } from '../access'
+import { anyone, hiddenFromJournalists, isAdminOrEditor } from '../access'
 import { revalidateGlobalAfterChange } from '../hooks/revalidate'
 
 /**
@@ -11,7 +11,7 @@ import { revalidateGlobalAfterChange } from '../hooks/revalidate'
 export const GrandAngle: GlobalConfig = {
   slug: 'grand-angle',
   label: 'Page Grand Angle',
-  admin: { group: 'Contenu' },
+  admin: { group: 'Mise en page', hideAPIURL: true, hidden: hiddenFromJournalists },
   access: { read: anyone, update: isAdminOrEditor },
   hooks: { afterChange: [revalidateGlobalAfterChange] },
   fields: [

@@ -2,7 +2,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { VideoEmbed } from '@/components/VideoEmbed'
+import { Gallery } from '@/components/Gallery'
+import { SocialEmbed } from '@/components/SocialEmbed'
+import { galleryLayout, galleryPhotos } from '@/lib/gallery'
 import { typoFr } from '@/lib/typo-fr'
 
 /**
@@ -32,7 +34,10 @@ type Node = {
 // Lexical text format is a bitmask.
 const BOLD = 1
 const ITALIC = 1 << 1
+const STRIKETHROUGH = 1 << 2
 const UNDERLINE = 1 << 3
+const SUBSCRIPT = 1 << 5
+const SUPERSCRIPT = 1 << 6
 
 function renderText(node: Node, key: string): ReactNode {
   let out: ReactNode = typoFr(node.text ?? '')
@@ -40,7 +45,23 @@ function renderText(node: Node, key: string): ReactNode {
   if (f & BOLD) out = <strong>{out}</strong>
   if (f & ITALIC) out = <em>{out}</em>
   if (f & UNDERLINE) out = <u>{out}</u>
+  if (f & STRIKETHROUGH) out = <s>{out}</s>
+  // A Word paste keeps « 1er » and footnote marks as sub/superscript bits even though the
+  // toolbar offers neither; render them rather than flatten them into the line.
+  if (f & SUPERSCRIPT) out = <sup>{out}</sup>
+  else if (f & SUBSCRIPT) out = <sub>{out}</sub>
   return <span key={key}>{out}</span>
+}
+
+/**
+ * The editor's alignment (AlignFeature) as a class. Centre and right only: left/start is the
+ * page's default already, and justify is what a Word paste leaves on every paragraph — vh.ma
+ * body copy stays ragged-right, so a stored « justify » is deliberately not applied.
+ */
+function alignClass(node: Node): string | undefined {
+  if (node.format === 'center') return 'vh-align-center'
+  if (node.format === 'right' || node.format === 'end') return 'vh-align-right'
+  return undefined
 }
 
 function renderChildren(children: Node[] | undefined, prefix: string): ReactNode[] {
@@ -85,7 +106,7 @@ function renderNode(node: Node, key: string): ReactNode {
         <p key={key}>
           <a href={url} target="_blank" rel="noopener noreferrer" className="vh-embed">
             <span className="type-copy-sm min-w-0 truncate">Publication {host}</span>
-            <span className="type-button shrink-0 text-accent">Voir la publication ›</span>
+            <span className="type-button vh-embed__action shrink-0">Voir la publication ›</span>
           </a>
         </p>
       )
@@ -96,16 +117,56 @@ function renderNode(node: Node, key: string): ReactNode {
 
   switch (node.type) {
     case 'paragraph':
-      return <p key={key}>{kids}</p>
+      return (
+        <p key={key} className={alignClass(node)}>
+          {kids}
+        </p>
+      )
     case 'heading': {
       // h1 is reserved for the article title — a body heading must never
-      // introduce a second one (spec §9, gate G36).
-      const tag = node.tag === 'h2' || node.tag === 'h3' ? node.tag : 'h3'
-      const H = tag as 'h2' | 'h3'
-      return <H key={key}>{kids}</H>
+      // introduce a second one (spec §9, gate G36). h4 is the editor's third level.
+      const tag = node.tag === 'h2' || node.tag === 'h3' || node.tag === 'h4' ? node.tag : 'h3'
+      const H = tag as 'h2' | 'h3' | 'h4'
+      return (
+        <H key={key} className={alignClass(node)}>
+          {kids}
+        </H>
+      )
     }
     case 'quote':
-      return <blockquote key={key}>{kids}</blockquote>
+      return (
+        <blockquote key={key} className={alignClass(node)}>
+          {kids}
+        </blockquote>
+      )
+    case 'table':
+      // A wrapper scrolls a wide spec sheet sideways on a phone instead of the page.
+      return (
+        <div key={key} className="vh-table" data-table>
+          <table>
+            <tbody>{kids}</tbody>
+          </table>
+        </div>
+      )
+    case 'tablerow':
+      return <tr key={key}>{kids}</tr>
+    case 'tablecell': {
+      // Lexical's headerState is a bitmask (1 = row header, 2 = column header).
+      const header = typeof node.headerState === 'number' && node.headerState > 0
+      const span = {
+        ...(typeof node.colSpan === 'number' && node.colSpan > 1 ? { colSpan: node.colSpan } : {}),
+        ...(typeof node.rowSpan === 'number' && node.rowSpan > 1 ? { rowSpan: node.rowSpan } : {}),
+      }
+      return header ? (
+        <th key={key} scope={node.headerState === 2 ? 'row' : 'col'} {...span}>
+          {kids}
+        </th>
+      ) : (
+        <td key={key} {...span}>
+          {kids}
+        </td>
+      )
+    }
     case 'list':
       return node.listType === 'number' ? <ol key={key}>{kids}</ol> : <ul key={key}>{kids}</ul>
     case 'listitem':
@@ -170,9 +231,23 @@ function renderNode(node: Node, key: string): ReactNode {
       )
     }
     case 'block': {
-      const fields = node.fields as { blockType?: string; url?: string } | undefined
-      if (fields?.blockType === 'videoEmbed' && fields.url) {
-        return <VideoEmbed key={key} url={fields.url} />
+      const fields = node.fields as Record<string, unknown> | undefined
+      if (fields?.blockType === 'videoEmbed' && typeof fields.url === 'string' && fields.url) {
+        const caption = typeof fields.caption === 'string' ? fields.caption : null
+        return <SocialEmbed key={key} url={fields.url} caption={caption} />
+      }
+      if (fields?.blockType === 'gallery') {
+        return (
+          <Gallery
+            key={key}
+            layout={galleryLayout(fields.layout)}
+            columns={fields.columns}
+            photos={galleryPhotos(fields)}
+            caption={typeof fields.caption === 'string' ? fields.caption : null}
+            // Blocks saved before the option existed have no value: the lightbox is the default.
+            lightbox={fields.lightbox !== false}
+          />
+        )
       }
       return <div key={key}>{kids}</div>
     }

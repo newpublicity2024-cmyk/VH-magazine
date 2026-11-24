@@ -68,15 +68,15 @@ export interface Config {
   blocks: {};
   collections: {
     articles: Article;
-    authors: Author;
+    media: Media;
+    'magazine-issues': MagazineIssue;
     categories: Category;
     tags: Tag;
-    'magazine-issues': MagazineIssue;
+    authors: Author;
     banners: Banner;
-    'newsletter-subscribers': NewsletterSubscriber;
     'contact-messages': ContactMessage;
+    'newsletter-subscribers': NewsletterSubscriber;
     redirects: Redirect;
-    media: Media;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -86,15 +86,15 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
-    authors: AuthorsSelect<false> | AuthorsSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    'magazine-issues': MagazineIssuesSelect<false> | MagazineIssuesSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
-    'magazine-issues': MagazineIssuesSelect<false> | MagazineIssuesSelect<true>;
+    authors: AuthorsSelect<false> | AuthorsSelect<true>;
     banners: BannersSelect<false> | BannersSelect<true>;
-    'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
+    'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -117,6 +117,16 @@ export interface Config {
   };
   locale: null;
   widgets: {
+    'vh-welcome': VhWelcomeWidget;
+    'vh-stats': VhStatsWidget;
+    'vh-site': VhSiteWidget;
+    'vh-review': VhReviewWidget;
+    'vh-drafts': VhDraftsWidget;
+    'vh-published': VhPublishedWidget;
+    'vh-activity': VhActivityWidget;
+    'vh-popular': VhPopularWidget;
+    'vh-readers': VhReadersWidget;
+    'vh-guide': VhGuideWidget;
     collections: CollectionsWidget;
   };
   user: User;
@@ -151,13 +161,8 @@ export interface Article {
   id: number;
   title: string;
   /**
-   * Résumé court. Sert de méta description par défaut.
+   * Collez un lien YouTube sur une ligne vide pour insérer la vidéo. Le bouton « + » ajoute une image, une galerie photos ou un tableau.
    */
-  excerpt?: string | null;
-  /**
-   * Format paysage 16:9 pour les cartes.
-   */
-  featuredImage: number | Media;
   body?: {
     root: {
       type: string;
@@ -174,6 +179,10 @@ export interface Article {
     [k: string]: unknown;
   } | null;
   /**
+   * Deux ou trois phrases qui donnent envie de lire. Il apparaît sous le titre et sert de description dans Google.
+   */
+  excerpt?: string | null;
+  /**
    * Détermine l’URL de l’article, y compris la rubrique parente.
    */
   category: number | Category;
@@ -183,13 +192,21 @@ export interface Article {
   secondaryCategories?: (number | Category)[] | null;
   signature?: (number | null) | Author;
   tags?: (number | Tag)[] | null;
-  author?: (number | null) | User;
-  publishedAt: string;
+  /**
+   * Format paysage 16:9 pour les cartes.
+   */
+  featuredImage: number | Media;
   isVideo?: boolean | null;
   videoUrl?: string | null;
+  reviewState?: ('none' | 'pending') | null;
+  author?: (number | null) | User;
+  /**
+   * Laisser vide : la date sera celle de la publication.
+   */
+  publishedAt?: string | null;
   viewCount?: number | null;
   /**
-   * Généré depuis le titre. Le modifier sur un article publié crée une redirection.
+   * Suit le titre jusqu’à la première publication. Le modifier ensuite crée une redirection.
    */
   slug?: string | null;
   seo?: {
@@ -210,76 +227,6 @@ export interface Article {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  /**
-   * Décrit l’image pour les lecteurs d’écran et le référencement.
-   */
-  alt: string;
-  credit?: string | null;
-  /**
-   * Ancien chemin sur vh.ma, ex. wp-content/uploads/2024/03/photo.jpg
-   */
-  legacyPath?: string | null;
-  legacyWpId?: number | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    thumb?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    card?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    wide?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    cover?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    og?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -342,6 +289,76 @@ export interface Tag {
   slug?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  /**
+   * Décrivez la photo en une phrase, ex. « Le nouveau Range Rover Sport devant la Tour Hassan ». Lue aux lecteurs malvoyants et par Google.
+   */
+  alt: string;
+  credit?: string | null;
+  /**
+   * Ancien chemin sur vh.ma, ex. wp-content/uploads/2024/03/photo.jpg
+   */
+  legacyPath?: string | null;
+  legacyWpId?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumb?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    wide?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    cover?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    og?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -435,6 +452,19 @@ export interface Banner {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-messages".
+ */
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "newsletter-subscribers".
  */
 export interface NewsletterSubscriber {
@@ -445,19 +475,6 @@ export interface NewsletterSubscriber {
    */
   source?: string | null;
   confirmed?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contact-messages".
- */
-export interface ContactMessage {
-  id: number;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -508,8 +525,12 @@ export interface PayloadLockedDocument {
         value: number | Article;
       } | null)
     | ({
-        relationTo: 'authors';
-        value: number | Author;
+        relationTo: 'media';
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'magazine-issues';
+        value: number | MagazineIssue;
       } | null)
     | ({
         relationTo: 'categories';
@@ -520,28 +541,24 @@ export interface PayloadLockedDocument {
         value: number | Tag;
       } | null)
     | ({
-        relationTo: 'magazine-issues';
-        value: number | MagazineIssue;
+        relationTo: 'authors';
+        value: number | Author;
       } | null)
     | ({
         relationTo: 'banners';
         value: number | Banner;
       } | null)
     | ({
-        relationTo: 'newsletter-subscribers';
-        value: number | NewsletterSubscriber;
-      } | null)
-    | ({
         relationTo: 'contact-messages';
         value: number | ContactMessage;
       } | null)
     | ({
-        relationTo: 'redirects';
-        value: number | Redirect;
+        relationTo: 'newsletter-subscribers';
+        value: number | NewsletterSubscriber;
       } | null)
     | ({
-        relationTo: 'media';
-        value: number | Media;
+        relationTo: 'redirects';
+        value: number | Redirect;
       } | null)
     | ({
         relationTo: 'users';
@@ -595,17 +612,18 @@ export interface PayloadMigration {
  */
 export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
-  excerpt?: T;
-  featuredImage?: T;
   body?: T;
+  excerpt?: T;
   category?: T;
   secondaryCategories?: T;
   signature?: T;
   tags?: T;
-  author?: T;
-  publishedAt?: T;
+  featuredImage?: T;
   isVideo?: T;
   videoUrl?: T;
+  reviewState?: T;
+  author?: T;
+  publishedAt?: T;
   viewCount?: T;
   slug?: T;
   seo?:
@@ -619,120 +637,6 @@ export interface ArticlesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "authors_select".
- */
-export interface AuthorsSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories_select".
- */
-export interface CategoriesSelect<T extends boolean = true> {
-  name?: T;
-  parent?: T;
-  description?: T;
-  slug?: T;
-  seo?:
-    | T
-    | {
-        title?: T;
-        description?: T;
-        canonicalURL?: T;
-        noIndex?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tags_select".
- */
-export interface TagsSelect<T extends boolean = true> {
-  name?: T;
-  slug?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "magazine-issues_select".
- */
-export interface MagazineIssuesSelect<T extends boolean = true> {
-  number?: T;
-  title?: T;
-  cover?: T;
-  summary?: T;
-  pdf?: T;
-  publishedAt?: T;
-  article?: T;
-  viewCount?: T;
-  slug?: T;
-  seo?:
-    | T
-    | {
-        title?: T;
-        description?: T;
-        canonicalURL?: T;
-        noIndex?: T;
-      };
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "banners_select".
- */
-export interface BannersSelect<T extends boolean = true> {
-  key?: T;
-  title?: T;
-  image?: T;
-  linkUrl?: T;
-  body?: T;
-  active?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "newsletter-subscribers_select".
- */
-export interface NewsletterSubscribersSelect<T extends boolean = true> {
-  email?: T;
-  source?: T;
-  confirmed?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contact-messages_select".
- */
-export interface ContactMessagesSelect<T extends boolean = true> {
-  name?: T;
-  email?: T;
-  subject?: T;
-  message?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "redirects_select".
- */
-export interface RedirectsSelect<T extends boolean = true> {
-  from?: T;
-  to?: T;
-  permanent?: T;
-  source?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -808,6 +712,120 @@ export interface MediaSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "magazine-issues_select".
+ */
+export interface MagazineIssuesSelect<T extends boolean = true> {
+  number?: T;
+  title?: T;
+  cover?: T;
+  summary?: T;
+  pdf?: T;
+  publishedAt?: T;
+  article?: T;
+  viewCount?: T;
+  slug?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        canonicalURL?: T;
+        noIndex?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  name?: T;
+  parent?: T;
+  description?: T;
+  slug?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        canonicalURL?: T;
+        noIndex?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors_select".
+ */
+export interface AuthorsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners_select".
+ */
+export interface BannersSelect<T extends boolean = true> {
+  key?: T;
+  title?: T;
+  image?: T;
+  linkUrl?: T;
+  body?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-messages_select".
+ */
+export interface ContactMessagesSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  subject?: T;
+  message?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-subscribers_select".
+ */
+export interface NewsletterSubscribersSelect<T extends boolean = true> {
+  email?: T;
+  source?: T;
+  confirmed?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  from?: T;
+  to?: T;
+  permanent?: T;
+  source?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -989,6 +1007,106 @@ export interface SiteSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-welcome_widget".
+ */
+export interface VhWelcomeWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-stats_widget".
+ */
+export interface VhStatsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-site_widget".
+ */
+export interface VhSiteWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-review_widget".
+ */
+export interface VhReviewWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-drafts_widget".
+ */
+export interface VhDraftsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-published_widget".
+ */
+export interface VhPublishedWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-activity_widget".
+ */
+export interface VhActivityWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-popular_widget".
+ */
+export interface VhPopularWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-readers_widget".
+ */
+export interface VhReadersWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vh-guide_widget".
+ */
+export interface VhGuideWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -996,6 +1114,44 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VideoEmbedBlock".
+ */
+export interface VideoEmbedBlock {
+  /**
+   * YouTube, Vimeo, Dailymotion, Facebook, Instagram, TikTok ou X (Twitter) : collez le lien copié depuis la barre d’adresse.
+   */
+  url: string;
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'videoEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "GalleryBlock".
+ */
+export interface GalleryBlock {
+  layout: 'grid' | 'mosaic' | 'masonry' | 'row' | 'stack' | 'carousel';
+  /**
+   * Automatique : 2 pour 2 ou 4 photos, 3 sinon. Sur téléphone, 2 au plus.
+   */
+  columns?: ('auto' | '2' | '3' | '4') | null;
+  /**
+   * Glissez les photos pour changer leur ordre : c’est l’ordre de l’article.
+   */
+  images: {
+    image: number | Media;
+    caption?: string | null;
+    id?: string | null;
+  }[];
+  caption?: string | null;
+  lightbox?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'gallery';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

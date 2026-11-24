@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isAdminOrEditor } from '../access'
+import { anyone, hiddenFromJournalists, isAdminOrEditor } from '../access'
 import { seoField } from '../fields/seo'
 import { slugField } from '../fields/slug'
 import { revalidateAfterChange, revalidateAfterDelete } from '../hooks/revalidate'
@@ -23,6 +23,8 @@ export const Categories: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'parent', 'slug'],
     group: 'Classement',
+    hideAPIURL: true,
+    hidden: hiddenFromJournalists,
   },
   access: {
     read: anyone,

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isAdminOrEditor } from '../access'
+import { anyone, hiddenFromJournalists, isAdminOrEditor } from '../access'
 import { seoField } from '../fields/seo'
 import { slugField } from '../fields/slug'
 import { revalidateAfterChange, revalidateAfterDelete } from '../hooks/revalidate'
@@ -8,11 +8,13 @@ import { revalidateAfterChange, revalidateAfterDelete } from '../hooks/revalidat
 /** Printed issues — the "Les Unes" archive and the homepage "Toutes nos unes" row (spec §5.13). */
 export const MagazineIssues: CollectionConfig = {
   slug: 'magazine-issues',
-  labels: { singular: 'Numéro', plural: 'Numéros' },
+  labels: { singular: 'Numéro', plural: 'Numéros du magazine' },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['number', 'title', 'publishedAt'],
-    group: 'Contenu',
+    group: 'Rédaction',
+    hideAPIURL: true,
+    hidden: hiddenFromJournalists,
   },
   access: {
     read: anyone,

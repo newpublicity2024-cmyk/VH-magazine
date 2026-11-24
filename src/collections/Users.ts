@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isAdmin, isAdminFieldLevel, isAdminOrSelf } from '../access'
+import { hiddenFromJournalists, isAdmin, isAdminFieldLevel, isAdminOrSelf } from '../access'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -9,7 +9,10 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['name', 'email', 'role'],
-    group: 'Administration',
+    group: 'Réglages',
+    hideAPIURL: true,
+    // A journalist reaches their own profile through « Mon compte » (/admin/account).
+    hidden: hiddenFromJournalists,
   },
   access: {
     read: isAdminOrSelf,

@@ -1,0 +1,1627 @@
+/*
+ * VH Magazine back office — WordPress's admin, in VH's colours and type.
+ *
+ * Structure is WordPress's, because the newsroom already knows it: a dark admin bar and a dark
+ * left menu around a light working area, white « postboxes », a blue primary button, status
+ * links over the articles table. Values are VH's: the night tone (#1c1c1e) for the chrome,
+ * VH blue (#166fc1) where WordPress uses its own blue, the magazine's Inter and Archivo
+ * (src/fonts — the same files the public site ships).
+ *
+ * A skin over Payload's own components, never a replacement: custom properties plus class and
+ * id hooks verified against Payload 3.85.1's DOM (the same hooks lallafatema's admin uses).
+ * Autosave, versions, live forms and every gate selector are untouched; empty this file and
+ * the stock admin is back. Payload ships its CSS inside `@layer payload-default`, so these
+ * unlayered rules win without specificity games.
+ *
+ * Light only: `admin.theme: 'light'` in payload.config.ts pins it. This file defines one
+ * palette, and Payload's dark tokens mixed into it once made form text unreadable on the
+ * sister site (lallafatema, 1.19:1).
+ */
+
+@font-face {
+  font-family: 'VH Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../../fonts/inter-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'VH Archivo';
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('../../fonts/archivo-latin.woff2') format('woff2');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 0. TOKENS
+ * ════════════════════════════════════════════════════════════════════════════ */
+:root,
+[data-theme='light'],
+[data-theme='dark'] {
+  /* Chrome — VH night, where WordPress uses #1d2327. */
+  --vhb-chrome: #1c1c1e;
+  --vhb-chrome-2: #2c2c2e; /* hover row */
+  --vhb-chrome-3: #3a3a3c; /* rules on the chrome */
+  --vhb-chrome-ink: #f5f5f7;
+  --vhb-chrome-ink-2: #c7c7cc; /* 10.9:1 on the chrome */
+  --vhb-chrome-accent: #5c9ad4; /* VH accent-on-dark, 5.9:1 on the chrome */
+
+  /* Working area */
+  --vhb-page: #f5f5f7;
+  --vhb-surface: #ffffff;
+  --vhb-surface-2: #fafafa;
+  --vhb-line: #d2d2d7;
+  --vhb-line-soft: #e8e8ed;
+  --vhb-ink: #111111;
+  --vhb-ink-2: #3a3a3c;
+  /* Meta text sits on the page ground too, where VH's #757575 measures 4.2:1; this one is
+     4.7:1 there and 5.0:1 on white — AA for small text on both. */
+  --vhb-ink-3: #6e6e73;
+
+  /* VH blue */
+  --vhb-accent: #166fc1;
+  --vhb-accent-600: #135ea4;
+  --vhb-accent-700: #0f4c85;
+  --vhb-accent-50: #e8f1f9;
+  --vhb-ring: rgba(22, 111, 193, 0.28);
+
+  /* Status — never colour alone: every pill also says its state in words. */
+  --vhb-ok: #1d6f42;
+  --vhb-ok-50: #e7f4ec;
+  --vhb-warm: #8a5300;
+  --vhb-warm-50: #fff3df;
+  --vhb-edit: #5b3fa0;
+  --vhb-edit-50: #f1edfa;
+
+  --vhb-radius: 4px;
+  --vhb-radius-control: 2px;
+
+  --vhb-font:
+    'VH Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --vhb-font-display:
+    'VH Archivo', 'VH Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Payload's own knobs */
+  --font-body: var(--vhb-font);
+  --style-radius-s: 2px;
+  --style-radius-m: 4px;
+  --style-radius-l: 6px;
+  --theme-bg: var(--vhb-page);
+  --theme-input-bg: var(--vhb-surface);
+  --theme-text: var(--vhb-ink);
+  --theme-border-color: var(--vhb-line);
+  --theme-success-500: #1d6f42;
+  /* The complete elevation ramp, light end to dark end. Payload reads low steps for surfaces
+     and high steps for text; a half-defined ramp is what broke the sister site. Monotonic. */
+  --theme-elevation-0: #ffffff;
+  --theme-elevation-50: #f5f5f7;
+  --theme-elevation-100: #e8e8ed;
+  --theme-elevation-150: #d2d2d7;
+  --theme-elevation-200: #c7c7cc;
+  --theme-elevation-250: #aeaeb2;
+  --theme-elevation-300: #98989d;
+  --theme-elevation-400: #6e6e73;
+  --theme-elevation-500: #636366;
+  --theme-elevation-600: #48484a;
+  --theme-elevation-700: #3a3a3c;
+  --theme-elevation-800: #2c2c2e;
+  --theme-elevation-900: #1c1c1e;
+  --theme-elevation-1000: #111111;
+}
+
+html {
+  font-family: var(--vhb-font);
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  background: var(--vhb-page);
+  color: var(--vhb-ink);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--vhb-font-display);
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--vhb-accent-600);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--vhb-accent);
+  outline-offset: 2px;
+}
+
+.vhb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 1. ADMIN BAR — WordPress's dark strip along the top
+ * ════════════════════════════════════════════════════════════════════════════ */
+.app-header {
+  background: var(--vhb-chrome);
+  border-bottom: 1px solid var(--vhb-chrome-3);
+  color: var(--vhb-chrome-ink);
+}
+.app-header__wrapper,
+.app-header__bg {
+  background: transparent;
+}
+.app-header .step-nav:after {
+  background: linear-gradient(to right, transparent, var(--vhb-chrome));
+}
+.app-header .step-nav a,
+.app-header .step-nav span,
+.app-header .step-nav__home {
+  color: var(--vhb-chrome-ink-2);
+}
+.app-header .step-nav a:hover {
+  color: var(--vhb-chrome-accent);
+}
+.app-header .step-nav .step-nav__last {
+  color: var(--vhb-chrome-ink);
+  font-weight: 600;
+}
+.app-header .step-nav svg,
+.app-header .app-header__account svg {
+  color: var(--vhb-chrome-ink-2);
+}
+/* The dashboard's breadcrumb is a select (switch dashboard / edit widgets): on the dark bar
+   it reads as text, not as a white form control. */
+/* Same specificity as the input rule in §3 would lose to it (later in the file): outrank it. */
+.app-header .react-select .rs__control,
+.app-header .rs__control {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  min-height: 0;
+}
+.app-header .rs__single-value,
+.app-header .rs__indicator,
+.app-header .rs__indicator svg {
+  color: var(--vhb-chrome-ink);
+}
+.app-header .rs__indicator-separator {
+  display: none;
+}
+.hamburger,
+.nav-toggler,
+.app-header .hamburger {
+  color: var(--vhb-chrome-ink);
+  background: transparent;
+}
+.hamburger:hover,
+.nav-toggler:hover {
+  color: var(--vhb-chrome-accent);
+  background: var(--vhb-chrome-2);
+}
+
+.vhb-mark {
+  display: block;
+  height: 18px;
+  width: auto;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 2. LEFT MENU — dark, iconified, VH-blue current item with WordPress's notch
+ * ════════════════════════════════════════════════════════════════════════════ */
+.nav,
+.nav .nav__scroll {
+  background: var(--vhb-chrome);
+  border-color: var(--vhb-chrome-3);
+  color: var(--vhb-chrome-ink);
+}
+.nav .nav__scroll {
+  gap: 0;
+  padding-inline: 0;
+}
+
+/* Group headings (Rédaction, Classement…) */
+.nav .nav-group__toggle {
+  color: var(--vhb-chrome-ink-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-top: 0.9rem;
+  margin-bottom: 0.2rem;
+  padding-inline: 1rem;
+}
+.nav .nav-group__toggle:hover {
+  color: var(--vhb-chrome-ink);
+}
+.nav .nav-group__indicator svg {
+  color: var(--vhb-chrome-ink-2);
+}
+
+.nav .nav__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--vhb-chrome-ink);
+  border-radius: 0;
+  margin: 0;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.nav .nav__link-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: inherit;
+}
+
+/* Icon slot: a masked SVG in currentColor, keyed on Payload's stable nav ids
+   (`#nav-articles`, `#nav-global-homepage`, …). Unmapped items get a dot. */
+.nav .nav__link-label::before {
+  content: '';
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  background-color: currentColor;
+  -webkit-mask: var(--vhb-nav-icon, radial-gradient(circle, #000 26%, transparent 30%)) center /
+    contain no-repeat;
+  mask: var(--vhb-nav-icon, radial-gradient(circle, #000 26%, transparent 30%)) center / contain
+    no-repeat;
+  opacity: 0.8;
+}
+
+@function icon($paths) {
+  @return url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'>#{$paths}</svg>");
+}
+
+#nav-articles {
+  --vhb-nav-icon: #{icon(
+      "<path d='M12 20h9'/><path d='M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'/>"
+    )};
+}
+#nav-media {
+  --vhb-nav-icon: #{icon(
+      "<rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/><path d='m21 15-5-5L5 21'/>"
+    )};
+}
+#nav-magazine-issues {
+  --vhb-nav-icon: #{icon(
+      "<path d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z'/><path d='M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5'/>"
+    )};
+}
+#nav-categories {
+  --vhb-nav-icon: #{icon(
+      "<path d='M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z'/>"
+    )};
+}
+#nav-tags {
+  --vhb-nav-icon: #{icon(
+      "<path d='M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z'/><circle cx='7.5' cy='7.5' r='1.5'/>"
+    )};
+}
+#nav-banners {
+  --vhb-nav-icon: #{icon(
+      "<path d='m3 11 18-5v12L3 13v-2Z'/><path d='M11.6 16.8a3 3 0 1 1-5.8-1.6'/>"
+    )};
+}
+#nav-global-homepage {
+  --vhb-nav-icon: #{icon("<path d='m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2Z'/>")};
+}
+#nav-contact-messages {
+  --vhb-nav-icon: #{icon(
+      "<rect x='2' y='4' width='20' height='16' rx='2'/><path d='m22 7-10 6L2 7'/>"
+    )};
+}
+#nav-newsletter-subscribers {
+  --vhb-nav-icon: #{icon("<path d='M4 4h16v12H5.2L4 17.2Z'/><path d='M8 8h8M8 12h5'/>")};
+}
+#nav-redirects {
+  --vhb-nav-icon: #{icon("<path d='M20 4v7a4 4 0 0 1-4 4H4'/><path d='m9 10-5 5 5 5'/>")};
+}
+#nav-users {
+  --vhb-nav-icon: #{icon(
+      "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8'/>"
+    )};
+}
+#nav-global-site-settings {
+  --vhb-nav-icon: #{icon(
+      "<path d='M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'/>"
+    )};
+}
+
+/* Hover on an inactive (anchor) row: WordPress's lighter row and blue label. */
+.nav a.nav__link:hover,
+.nav a.nav__link:focus-visible {
+  background: var(--vhb-chrome-2);
+  color: var(--vhb-chrome-accent);
+  text-decoration: none;
+}
+/* Current item. Payload renders the exact page as `div.nav__link` (no href) and a page below
+   it — an article's edit screen under Articles — as an anchor holding `.nav__link-indicator`.
+   Both get WordPress's treatment: full-bleed VH blue with the notch pointing at the page. */
+.nav div.nav__link,
+.nav a.nav__link:has(.nav__link-indicator) {
+  background: var(--vhb-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+.nav div.nav__link .nav__link-label::before,
+.nav a.nav__link:has(.nav__link-indicator) .nav__link-label::before {
+  opacity: 1;
+}
+.nav a.nav__link:has(.nav__link-indicator):hover {
+  background: var(--vhb-accent-600);
+  color: #ffffff;
+}
+.nav div.nav__link::after,
+.nav a.nav__link:has(.nav__link-indicator)::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 0;
+  top: 50%;
+  translate: 0 -50%;
+  border: 8px solid transparent;
+  border-inline-end-color: var(--vhb-page);
+}
+.nav .nav__link-indicator {
+  display: none;
+}
+.nav .nav__log-out,
+.nav .nav__controls a,
+.nav .nav__controls button {
+  color: var(--vhb-chrome-ink-2);
+}
+.nav .nav__log-out:hover {
+  color: var(--vhb-chrome-accent);
+}
+.nav .nav__log-out svg {
+  color: currentColor;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 3. CONTROLS — WordPress buttons in VH blue
+ * ════════════════════════════════════════════════════════════════════════════ */
+.btn {
+  font-family: var(--vhb-font);
+  font-weight: 600;
+  border-radius: var(--vhb-radius-control);
+}
+.btn--style-primary,
+.btn--style-primary .btn__content {
+  background-color: var(--vhb-accent);
+  border-color: var(--vhb-accent);
+  color: #ffffff;
+}
+.btn--style-primary:not(.btn--disabled):hover,
+.btn--style-primary:not(.btn--disabled):focus-visible,
+.btn--style-primary:not(.btn--disabled):hover .btn__content {
+  background-color: var(--vhb-accent-600);
+  border-color: var(--vhb-accent-600);
+  color: #ffffff;
+}
+.btn--style-secondary {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-accent);
+  box-shadow: none;
+  color: var(--vhb-accent-600);
+}
+.btn--style-secondary:not(.btn--disabled):hover {
+  background: var(--vhb-accent-50);
+  color: var(--vhb-accent-700);
+  box-shadow: none;
+}
+.btn--style-pill {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-accent);
+  color: var(--vhb-accent-600);
+}
+.btn--style-pill:not(.btn--disabled):hover {
+  background: var(--vhb-accent-50);
+  color: var(--vhb-accent-700);
+}
+
+.field-type input,
+.field-type textarea,
+.react-select .rs__control,
+.date-time-picker__input-wrapper input {
+  background: var(--vhb-surface);
+  border-color: var(--vhb-line);
+  border-radius: var(--vhb-radius-control);
+}
+.field-type input:focus,
+.field-type textarea:focus,
+.react-select .rs__control--is-focused {
+  border-color: var(--vhb-accent) !important;
+  box-shadow: 0 0 0 1px var(--vhb-accent);
+}
+.field-label:not(.unstyled) {
+  color: var(--vhb-ink);
+  font-weight: 600;
+}
+.field-description {
+  color: var(--vhb-ink-3);
+}
+.checkbox-input__input:checked + .checkbox-input__icon,
+.checkbox-input input:checked ~ .checkbox-input__icon {
+  background: var(--vhb-accent);
+  border-color: var(--vhb-accent);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 4. LIST TABLES — « widefat striped »
+ * ════════════════════════════════════════════════════════════════════════════ */
+.collection-list .list-header h1,
+.list-header h1 {
+  font-family: var(--vhb-font-display);
+  font-weight: 700;
+}
+.list-controls .search-filter__input,
+.search-filter input {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius-control);
+}
+.collection-list .table {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius);
+}
+.table table thead {
+  background: var(--vhb-surface);
+}
+.table table thead th {
+  color: var(--vhb-ink-2);
+  font-weight: 600;
+  border-bottom: 1px solid var(--vhb-line);
+}
+.table table tbody tr:nth-child(odd) {
+  background: var(--vhb-surface-2);
+}
+.table table tbody tr:nth-child(even) {
+  background: var(--vhb-surface);
+}
+.table table tbody tr:hover {
+  background: var(--vhb-accent-50);
+}
+.table table td {
+  border-bottom: 1px solid var(--vhb-line-soft);
+  vertical-align: middle;
+}
+.table table tbody td:first-of-type a,
+.table table tbody .cell-title a {
+  font-weight: 600;
+  color: var(--vhb-accent-600);
+  text-decoration: none;
+}
+.table table tbody tr a:hover {
+  color: var(--vhb-accent-700);
+  text-decoration: underline;
+}
+
+/* Status cell: a pill that says its state in words. */
+.cell-_status > span {
+  display: inline-block;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--vhb-warm-50);
+  color: var(--vhb-warm);
+}
+.cell-_status > .selected--published {
+  background: var(--vhb-ok-50);
+  color: var(--vhb-ok);
+}
+.paginator .paginator__page--is-current {
+  background: var(--vhb-accent);
+  color: #ffffff;
+  border-color: var(--vhb-accent);
+}
+
+/* WordPress's « subsubsub » status links above the table. */
+.vhb-status-links ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.95rem;
+}
+.vhb-status-links li + li::before {
+  content: '|';
+  margin-inline: 0.55rem;
+  color: var(--vhb-line);
+}
+.vhb-status-links a {
+  color: var(--vhb-accent-600);
+  text-decoration: none;
+}
+.vhb-status-links a:hover {
+  text-decoration: underline;
+}
+.vhb-status-links a[aria-current='page'] {
+  color: var(--vhb-ink);
+  font-weight: 700;
+}
+.vhb-status-links__count {
+  color: var(--vhb-ink-3);
+  font-weight: 400;
+}
+.vhb-cell-muted {
+  color: var(--vhb-ink-3);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 5. EDIT SCREEN — big title, classic editor box, sidebar postboxes
+ * ════════════════════════════════════════════════════════════════════════════ */
+.doc-controls {
+  background: var(--vhb-surface);
+  border-bottom: 1px solid var(--vhb-line);
+}
+.doc-controls:before,
+.doc-controls:after {
+  background: var(--vhb-surface);
+}
+.doc-controls .status__value {
+  font-weight: 600;
+}
+.doc-header__title,
+.collection-edit .doc-header__title {
+  font-family: var(--vhb-font-display);
+  font-weight: 700;
+}
+.doc-tab.doc-tab--active,
+.doc-tab.doc-tab--active .btn__content {
+  background: var(--vhb-accent-50);
+  color: var(--vhb-accent-700);
+}
+
+/* « Saisissez le titre »: WordPress's large title input. */
+input#field-title {
+  font-family: var(--vhb-font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 0.55rem 0.75rem;
+  height: auto;
+  min-height: 3.2rem;
+}
+input#field-title::placeholder {
+  font-size: inherit;
+  font-weight: 500;
+  color: var(--vhb-ink-3);
+}
+
+/* The rich text editor as WordPress's classic box: grey toolbar, white page. */
+.rich-text-lexical .fixed-toolbar,
+.fixed-toolbar {
+  background: var(--vhb-page);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius) var(--vhb-radius) 0 0;
+}
+.rich-text-lexical .editor-container {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-top: 0;
+  border-radius: 0 0 var(--vhb-radius) var(--vhb-radius);
+  padding-inline: 0.75rem;
+}
+/* Lexical's default is Georgia at 13px. Writers judge length and rhythm by what they see, so
+   the editor sets the text the way the site will: Inter, at reading size. */
+.rich-text-lexical .ContentEditable__root,
+.rich-text-lexical .editor-placeholder,
+.rich-text-lexical [class*='placeholder'] {
+  font-family: var(--vhb-font);
+}
+.rich-text-lexical .ContentEditable__root {
+  font-size: 1.2rem;
+  line-height: 1.7;
+  min-height: 22rem;
+  color: var(--vhb-ink);
+}
+
+/* Sidebar fields as postboxes. */
+.document-fields__sidebar-wrap {
+  background: var(--vhb-page);
+  border-inline-start: 1px solid var(--vhb-line);
+}
+.document-fields__sidebar .render-fields > .field-type:not(.ui):not(.group-field),
+.document-fields__sidebar .render-fields > .group-field {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.85rem;
+}
+.document-fields__sidebar .render-fields > .field-type > .field-label,
+.document-fields__sidebar .render-fields > .field-type .field-label:first-child {
+  font-family: var(--vhb-font-display);
+}
+
+.dropzone {
+  border-color: var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  background: var(--vhb-surface);
+}
+.dropzone--is-dragging,
+.dropzone:hover {
+  border-color: var(--vhb-accent);
+}
+
+/* « Soumettre pour relecture » carries the primary weight a journalist's Publish would. */
+.doc-controls .vhb-submit-review,
+.vhb-submit-review {
+  background-color: var(--vhb-accent);
+  border-color: var(--vhb-accent);
+  color: #ffffff;
+}
+.vhb-submit-review:not(.btn--disabled):hover {
+  background-color: var(--vhb-accent-600);
+  border-color: var(--vhb-accent-600);
+  color: #ffffff;
+}
+
+/* The « Publier » box */
+.vhb-publishbox {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  margin-bottom: 0.85rem;
+  font-size: 0.95rem;
+}
+.vhb-publishbox__title {
+  margin: 0;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--vhb-line);
+  font-size: 1rem;
+}
+.vhb-publishbox__facts {
+  margin: 0;
+  padding: 0.5rem 0.85rem 0.25rem;
+}
+.vhb-publishbox__facts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: baseline;
+  padding: 0.25rem 0;
+}
+.vhb-publishbox__facts dt {
+  color: var(--vhb-ink-3);
+  min-width: 6.5rem;
+}
+.vhb-publishbox__facts dd {
+  margin: 0;
+  color: var(--vhb-ink);
+  font-weight: 500;
+}
+.vhb-publishbox__subtitle {
+  margin: 0.4rem 0.85rem 0.3rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--vhb-line-soft);
+  font-weight: 600;
+}
+.vhb-publishbox__hint {
+  margin: 0.25rem 0.85rem 0.85rem;
+  color: var(--vhb-ink-3);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.vhb-checklist {
+  list-style: none;
+  margin: 0 0.85rem 0.6rem;
+  padding: 0;
+}
+.vhb-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  color: var(--vhb-ink-2);
+}
+.vhb-checklist__mark {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1.5px solid var(--vhb-ink-3);
+  border-radius: 50%;
+}
+.vhb-checklist li.is-done {
+  color: var(--vhb-ink);
+}
+.vhb-checklist li.is-done .vhb-checklist__mark {
+  border-color: var(--vhb-ok);
+  background: var(--vhb-ok)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m4 8.5 2.5 2.5L12 5.5'/></svg>")
+    center / 80% no-repeat;
+}
+
+/* The writer's guide above the form */
+.vhb-writer-guide {
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  background: var(--vhb-accent-50);
+  border-inline-start: 4px solid var(--vhb-accent);
+  border-radius: 0 var(--vhb-radius) var(--vhb-radius) 0;
+  color: var(--vhb-ink);
+  line-height: 1.55;
+}
+.vhb-writer-guide p {
+  margin: 0;
+}
+.vhb-writer-guide__title {
+  font-family: var(--vhb-font-display);
+  font-weight: 700;
+  margin-bottom: 0.25rem !important;
+}
+.vhb-writer-guide__byline {
+  margin-top: 0.4rem !important;
+  color: var(--vhb-ink-2);
+}
+
+/* Pills shared by the box, the list and the dashboard */
+.vhb-pill {
+  display: inline-block;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.vhb-pill--draft {
+  background: var(--vhb-line-soft);
+  color: var(--vhb-ink-2);
+}
+.vhb-pill--pending {
+  background: var(--vhb-warm-50);
+  color: var(--vhb-warm);
+}
+.vhb-pill--live {
+  background: var(--vhb-ok-50);
+  color: var(--vhb-ok);
+}
+.vhb-pill--edit {
+  background: var(--vhb-edit-50);
+  color: var(--vhb-edit);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 6. DASHBOARD — postboxes, the stats row, the chart, the site panel
+ * ════════════════════════════════════════════════════════════════════════════ */
+.dashboard {
+  padding-top: 0.75rem;
+}
+.modular-dashboard {
+  margin-inline: -6px; /* widgets carry 6px padding each; pull the grid flush */
+}
+
+.vhb-card {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.vhb-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--vhb-line);
+}
+.vhb-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--vhb-ink);
+}
+.vhb-card__icon {
+  display: inline-flex;
+  color: var(--vhb-accent);
+}
+.vhb-card__body {
+  padding: 0.35rem 1rem 0.85rem;
+  flex: 1;
+}
+.vhb-link {
+  color: var(--vhb-accent-600);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.vhb-link:hover {
+  text-decoration: underline;
+}
+
+.vhb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--vhb-accent);
+  border-radius: var(--vhb-radius-control);
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.vhb-btn--primary {
+  background: var(--vhb-accent);
+  color: #ffffff;
+}
+.vhb-btn--primary:hover {
+  background: var(--vhb-accent-600);
+  border-color: var(--vhb-accent-600);
+  color: #ffffff;
+}
+.vhb-btn--soft {
+  background: var(--vhb-surface);
+  color: var(--vhb-accent-600);
+}
+.vhb-btn--soft:hover {
+  background: var(--vhb-accent-50);
+  color: var(--vhb-accent-700);
+}
+.vhb-btn--ghost {
+  background: transparent;
+  border-color: var(--vhb-line);
+  color: var(--vhb-ink-2);
+}
+.vhb-btn--ghost:hover {
+  border-color: var(--vhb-accent);
+  color: var(--vhb-accent-700);
+}
+.vhb-btn--lg {
+  min-height: 2.6rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 1rem;
+}
+
+/* Welcome — the one loud element: VH night with the blue rule, Archivo greeting. */
+.vhb-welcome {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  padding: 1.5rem 1.75rem;
+  background: var(--vhb-chrome);
+  border-color: var(--vhb-chrome);
+  border-inline-start: 6px solid var(--vhb-accent);
+  color: var(--vhb-chrome-ink);
+}
+.vhb-welcome__text {
+  max-width: 46rem;
+}
+.vhb-welcome__date {
+  margin: 0 0 0.3rem;
+  color: var(--vhb-chrome-ink-2);
+  font-size: 0.95rem;
+}
+.vhb-welcome__title {
+  margin: 0;
+  font-size: clamp(1.7rem, 2.6vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #ffffff;
+}
+.vhb-welcome__sub {
+  margin: 0.55rem 0 0;
+  color: var(--vhb-chrome-ink-2);
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+.vhb-welcome__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.vhb-welcome .vhb-btn--ghost {
+  border-color: var(--vhb-chrome-3);
+  color: var(--vhb-chrome-ink);
+}
+.vhb-welcome .vhb-btn--ghost:hover {
+  border-color: var(--vhb-chrome-accent);
+  background: var(--vhb-chrome-2);
+  color: #ffffff;
+}
+
+/* Stats row (« D'un coup d'œil ») */
+.vhb-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.75rem;
+}
+.vhb-stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'icon label'
+    'value value'
+    'hint hint';
+  align-items: center;
+  column-gap: 0.45rem;
+  padding: 0.85rem 1rem;
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  color: var(--vhb-ink);
+  text-decoration: none;
+}
+.vhb-stat:hover {
+  border-color: var(--vhb-accent);
+}
+.vhb-stat__icon {
+  grid-area: icon;
+  display: inline-flex;
+  color: var(--vhb-ink-3);
+}
+.vhb-stat__label {
+  grid-area: label;
+  color: var(--vhb-ink-2);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.vhb-stat__value {
+  grid-area: value;
+  margin-top: 0.35rem;
+  font-family: var(--vhb-font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.vhb-stat__hint {
+  grid-area: hint;
+  color: var(--vhb-ink-3);
+  font-size: 0.85rem;
+}
+.vhb-stat--attention {
+  border-color: var(--vhb-warm);
+  box-shadow: inset 0 3px 0 var(--vhb-warm);
+}
+.vhb-stat--attention .vhb-stat__icon {
+  color: var(--vhb-warm);
+}
+
+/* Article rows */
+.vhb-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vhb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--vhb-line-soft);
+}
+.vhb-row:last-child {
+  border-bottom: 0;
+}
+.vhb-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.vhb-row__title {
+  color: var(--vhb-accent-600);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.vhb-row__title:hover {
+  text-decoration: underline;
+}
+.vhb-row__title--untitled {
+  color: var(--vhb-ink-3);
+  font-style: italic;
+}
+.vhb-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.6rem;
+  color: var(--vhb-ink-3);
+  font-size: 0.86rem;
+}
+.vhb-row__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex: none;
+}
+.vhb-chip {
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--vhb-line-soft);
+  color: var(--vhb-ink-2);
+}
+.vhb-chip--warm {
+  background: var(--vhb-edit-50);
+  color: var(--vhb-edit);
+}
+
+.vhb-empty {
+  padding: 1rem 0 0.25rem;
+}
+.vhb-empty__title {
+  margin: 0;
+  font-weight: 600;
+}
+.vhb-empty__hint {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--vhb-ink-3);
+}
+
+.vhb-steps {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+.vhb-step {
+  display: flex;
+  gap: 0.75rem;
+}
+.vhb-step__num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--vhb-accent-50);
+  color: var(--vhb-accent-700);
+  font-weight: 700;
+}
+.vhb-step__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.vhb-step__text {
+  color: var(--vhb-ink-2);
+  line-height: 1.5;
+}
+
+/* Chart — single series, columns (see Activity.tsx for the dataviz choices). */
+.vhb-chart__summary {
+  margin: 0.4rem 0 0.75rem;
+  color: var(--vhb-ink-2);
+}
+.vhb-chart__summary strong {
+  color: var(--vhb-ink);
+}
+.vhb-chart {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  grid-template-rows: 9.5rem auto;
+  column-gap: 0.4rem;
+}
+.vhb-chart__axis {
+  position: relative;
+  grid-row: 1;
+  color: var(--vhb-ink-3);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.vhb-chart__tick {
+  position: absolute;
+  inset-inline-end: 0;
+  translate: 0 50%;
+}
+.vhb-chart__plot {
+  position: relative;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(30, 1fr);
+  align-items: end;
+  height: 100%;
+}
+.vhb-chart__grid {
+  position: absolute;
+  inset-inline: 0;
+  height: 1px;
+  background: var(--vhb-line-soft);
+}
+.vhb-chart__col {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-inline: 1px; /* the 2px surface gap between touching columns */
+  outline-offset: 0;
+}
+.vhb-chart__bar {
+  position: relative;
+  width: 100%;
+  max-width: 24px;
+  min-height: 2px;
+  background: var(--vhb-accent);
+  border-radius: 4px 4px 0 0;
+}
+.vhb-chart__col:hover .vhb-chart__bar,
+.vhb-chart__col:focus-visible .vhb-chart__bar {
+  background: var(--vhb-accent-700);
+}
+.vhb-chart__peak {
+  position: absolute;
+  inset-inline: 0;
+  margin-bottom: 0.2rem;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--vhb-ink-2);
+}
+.vhb-chart__tip {
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 2;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--vhb-radius-control);
+  background: var(--vhb-chrome);
+  color: #ffffff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+.vhb-chart__col--start .vhb-chart__tip {
+  left: 0;
+  translate: 0 0;
+}
+.vhb-chart__col--end .vhb-chart__tip {
+  left: auto;
+  right: 0;
+  translate: 0 0;
+}
+.vhb-chart__col:hover .vhb-chart__tip,
+.vhb-chart__col:focus-visible .vhb-chart__tip {
+  opacity: 1;
+  visibility: visible;
+}
+.vhb-chart__xlabels {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(30, 1fr);
+  margin-top: 0.35rem;
+  border-top: 1px solid var(--vhb-line);
+  padding-top: 0.25rem;
+  color: var(--vhb-ink-3);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+.vhb-chart__table {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+.vhb-chart__table summary {
+  cursor: pointer;
+  color: var(--vhb-accent-600);
+  font-weight: 600;
+}
+.vhb-chart__table table {
+  width: 100%;
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.vhb-chart__table th,
+.vhb-chart__table td {
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--vhb-line-soft);
+  text-align: start;
+}
+.vhb-chart__table td:last-child,
+.vhb-chart__table th:last-child {
+  text-align: end;
+}
+
+/* Meter list (« Les plus lus ») */
+.vhb-meters {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.vhb-meter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7rem 5.5rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+.vhb-meter__name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.vhb-meter__name > a {
+  color: var(--vhb-accent-600);
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vhb-meter__name > a:hover {
+  text-decoration: underline;
+}
+.vhb-meter__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--vhb-ink-3);
+  font-size: 0.84rem;
+}
+.vhb-meter__meta a {
+  display: inline-flex;
+  color: var(--vhb-ink-3);
+}
+.vhb-meter__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--vhb-accent-50);
+  overflow: hidden;
+}
+.vhb-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--vhb-accent);
+}
+.vhb-meter__value {
+  color: var(--vhb-ink-2);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.vhb-inline-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.5rem 0 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--vhb-radius);
+  background: var(--vhb-page);
+  color: var(--vhb-ink-2);
+  text-decoration: none;
+}
+.vhb-inline-stat:hover {
+  color: var(--vhb-accent-700);
+}
+.vhb-inline-stat strong {
+  color: var(--vhb-ink);
+}
+
+/* Site panel (« Gérer le site ») */
+.vhb-site__groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem 1.5rem;
+  padding: 0.85rem 1rem 1rem;
+}
+.vhb-site__group-title {
+  margin: 0 0 0.4rem;
+  color: var(--vhb-ink-3);
+  font-family: var(--vhb-font);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.vhb-site__parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.vhb-part {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--vhb-line-soft);
+  border-radius: var(--vhb-radius);
+  color: var(--vhb-ink);
+  text-decoration: none;
+}
+.vhb-part:hover {
+  border-color: var(--vhb-accent);
+  background: var(--vhb-accent-50);
+}
+.vhb-part__icon {
+  display: inline-flex;
+  color: var(--vhb-accent);
+}
+.vhb-part__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.vhb-part__label {
+  font-weight: 600;
+}
+.vhb-part__hint {
+  color: var(--vhb-ink-3);
+  font-size: 0.84rem;
+}
+.vhb-part__count {
+  color: var(--vhb-ink-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 7. LOGIN — the VH wordmark on a white card
+ * ════════════════════════════════════════════════════════════════════════════ */
+.template-minimal {
+  background: var(--vhb-page);
+}
+.template-minimal__wrap {
+  background: var(--vhb-surface);
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  padding: 2.25rem;
+}
+.template-minimal .form-submit .btn {
+  width: 100%;
+  justify-content: center;
+}
+.vhb-logo {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  margin: 0 auto 0.5rem;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 8. SMALL SCREENS — widgets stack; rows wrap
+ * ════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .modular-dashboard > .draggable,
+  .modular-dashboard > [style*='width'] {
+    width: 100% !important;
+  }
+}
+@media (max-width: 640px) {
+  .vhb-welcome {
+    padding: 1.15rem 1.1rem;
+  }
+  .vhb-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .vhb-meter {
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+  }
+  .vhb-meter__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .vhb-chart__xlabels span {
+    font-size: 0.7rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Editor blocks: « Vidéo ou publication » preview, gallery layout chooser, bulk add
+   (src/backoffice/editor — gate BO-G24)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.vhb-embed-preview {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--vhb-line-soft);
+  border-radius: var(--vhb-radius);
+  background: var(--vhb-surface-2);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--vhb-ink-2);
+}
+.vhb-embed-preview--empty {
+  color: var(--vhb-ink-3);
+}
+.vhb-embed-preview--refused {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-color: #e9c48a;
+  background: var(--vhb-warm-50);
+  color: var(--vhb-ink);
+}
+.vhb-embed-preview--refused strong {
+  color: var(--vhb-warm);
+}
+.vhb-embed-preview__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.6rem;
+}
+.vhb-embed-preview__head strong {
+  color: var(--vhb-ok);
+}
+.vhb-embed-preview__head strong::before {
+  content: '✓ ';
+}
+.vhb-embed-preview__head a {
+  color: var(--vhb-accent);
+}
+.vhb-embed-preview__note {
+  margin: 0;
+}
+.vhb-embed-preview__frame {
+  position: relative;
+  margin: 0 auto;
+  background: var(--vhb-line-soft);
+}
+.vhb-embed-preview__frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.vhb-embed-preview__frame--landscape {
+  max-width: 34rem;
+  aspect-ratio: 16 / 9;
+}
+.vhb-embed-preview__frame--portrait {
+  max-width: 15rem;
+  aspect-ratio: 9 / 16;
+}
+/* A post's own height is the public page's business; the preview shows its top. */
+.vhb-embed-preview__frame--post {
+  max-width: 30rem;
+  height: 28rem;
+}
+
+/* « Disposition »: six drawings as radio cards. */
+.vhb-layouts {
+  margin: 0 0 1.1rem;
+  padding: 0;
+  border: 0;
+}
+.vhb-layouts__legend {
+  margin-bottom: 0.45rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--vhb-ink);
+}
+.vhb-layouts__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+}
+.vhb-layouts__option {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.65rem 0.65rem;
+  border: 1px solid var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  background: var(--vhb-surface);
+  cursor: pointer;
+}
+.vhb-layouts__option:hover {
+  border-color: var(--vhb-accent);
+}
+.vhb-layouts__option[data-checked='true'] {
+  border-color: var(--vhb-accent);
+  background: var(--vhb-accent-50);
+  box-shadow: inset 0 0 0 1px var(--vhb-accent);
+}
+.vhb-layouts__option:has(input:focus-visible) {
+  outline: 2px solid var(--vhb-accent);
+  outline-offset: 2px;
+}
+.vhb-layouts__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.vhb-layouts__drawing {
+  width: 100%;
+  max-width: 7.5rem;
+  height: auto;
+  margin-bottom: 0.25rem;
+  fill: var(--vhb-ink-3);
+  stroke: var(--vhb-ink-3);
+  stroke-width: 0;
+}
+.vhb-layouts__drawing path {
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.vhb-layouts__drawing .vhb-layouts__dim {
+  opacity: 0.4;
+}
+.vhb-layouts__option[data-checked='true'] .vhb-layouts__drawing {
+  fill: var(--vhb-accent);
+  stroke: var(--vhb-accent);
+}
+.vhb-layouts__label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--vhb-ink);
+}
+.vhb-layouts__hint {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--vhb-ink-3);
+}
+
+/* « Ajouter des photos » */
+.vhb-bulkadd {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--vhb-line);
+  border-radius: var(--vhb-radius);
+  background: var(--vhb-surface-2);
+}
+.vhb-bulkadd__title {
+  margin: 0 0 0.45rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--vhb-ink);
+}
+.vhb-bulkadd__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.vhb-bulkadd__actions .btn {
+  margin: 0;
+}
+.vhb-bulkadd__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--vhb-ink-3);
+}
+
+/* The Médiathèque drawer's « Sélectionner N » — the step that ends « Choisir plusieurs photos ».
+   Payload draws it as a white pill beside « Colonnes »; it is the drawer's primary action. */
+.list-drawer .search-bar__actions > .pill--style-white {
+  border-color: var(--vhb-accent);
+  background: var(--vhb-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.list-drawer .search-bar__actions > .pill--style-white:hover {
+  background: var(--vhb-accent-600);
+}
