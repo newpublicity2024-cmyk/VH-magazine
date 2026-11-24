@@ -96,6 +96,11 @@ export function issueUrl(issue: { slug?: string | null; article?: ArticleLike | 
   return issue.slug ? `/sommaire/${issue.slug}/` : '/magazine-maroc/'
 }
 
+/** A byline's archive, at vh.ma's own URL: `/author/david-jeremie/`. */
+export function authorUrl(author: { slug?: string | null }): string {
+  return author.slug ? `/author/${author.slug}/` : '/'
+}
+
 /** Normalise any path to exactly one leading and one trailing slash. */
 export function withTrailingSlash(path: string): string {
   if (!path) return '/'

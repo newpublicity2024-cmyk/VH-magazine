@@ -9,8 +9,9 @@
  *   - /category/{top}/page/2/ → 301 /category/{top}/?page=2, which answers 200;
  *     /category/{top}/{child}/page/1/ → 301 /category/{top}/{child}/ (page 1 is the bare URL)
  *   - /tag/{slug}/page/3/ → 301 straight to that tag's redirect target (a category)
- *   - controls, untouched by the rule: a three-segment path ending in page/N that is not an
- *     archive (/{category}/page/2/) and an author archive are not redirected to a listing.
+ *   - /author/{slug}/page/2/ → 301 /author/{slug}/?page=2 (bylines' archives, since 2026-11-24)
+ *   - control, untouched by the rule: a three-segment path ending in page/N that is not an
+ *     archive (/{category}/page/2/) is not redirected to a listing.
  * Run against vh_migration (it holds the tag redirects); every page judged is request-time.
  */
 import pg from 'pg'
@@ -27,7 +28,11 @@ const top = (await db.query(`
    order by c.id limit 1`)).rows[0]?.slug
 const child = (await db.query(`select c.slug, p.slug as parent from categories c join categories p on p.id = c.parent_id order by c.id limit 1`)).rows[0]
 const tag = (await db.query(`select "from", "to" from redirects where "from" ~ '^/tag/[a-z0-9-]+/$' order by id limit 1`)).rows[0]
+// The byline signing the most articles (bylines exist since 2026-11-24).
+const author = (await db.query(`select au.slug from authors au join articles a on a.signature_id = au.id
+                                  group by au.slug order by count(*) desc limit 1`)).rows[0]?.slug
 await db.end()
+if (!author) fail('no byline in the database to test /author/…/page/N/ with')
 if (!top || !child || !tag) fail(`the database needs a category with 2+ pages, a subcategory and a tag redirect (got ${!!top}, ${!!child}, ${!!tag})`)
 
 try {
@@ -47,11 +52,13 @@ try {
     checkEqual((await get(`/category/${top}/?page=2`)).status, 200, `/category/${top}/?page=2`)
     await expect301(`/category/${child.parent}/${child.slug}/page/1/`, `/category/${child.parent}/${child.slug}/`)
     await expect301(`${tag.from}page/3/`, tag.to)
-    for (const p of [`/${top}/page/2/`, '/author/redaction/page/2/']) {
+    await expect301(`/author/${author}/page/2/`, `/author/${author}/?page=2`)
+    checkEqual((await get(`/author/${author}/?page=2`)).status, 200, `/author/${author}/?page=2`)
+    for (const p of [`/${top}/page/2/`]) {
       const r = await get(p)
       check(!(r.status === 301 && /^\/(category\/|\?|$)/.test(r.to ?? '')), `control ${p} was redirected to a listing: ${r.status} → ${r.to}`)
     }
-    console.error(`  /page/2/, /category/${top}/page/2/, …/${child.slug}/page/1/, ${tag.from}page/3/ → 301 to their listings; controls untouched`)
+    console.error(`  /page/2/, /category/${top}/page/2/, …/${child.slug}/page/1/, ${tag.from}page/3/, /author/${author}/page/2/ → 301 to their listings; control untouched`)
   })
 } catch (e) {
   if (e instanceof GateFailure) fail(e.message)

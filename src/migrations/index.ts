@@ -4,6 +4,7 @@ import * as migration_20261105_160427_media_legacy_fields from './20261105_16042
 import * as migration_20261119_120000_search_body from './20261119_120000_search_body';
 import * as migration_20261124_095739_parity_categories_issue_article from './20261124_095739_parity_categories_issue_article';
 import * as migration_20261124_102941_parity_grand_angle from './20261124_102941_parity_grand_angle';
+import * as migration_20261124_114708_parity_signatures from './20261124_114708_parity_signatures';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20261124_102941_parity_grand_angle.up,
     down: migration_20261124_102941_parity_grand_angle.down,
-    name: '20261124_102941_parity_grand_angle'
+    name: '20261124_102941_parity_grand_angle',
+  },
+  {
+    up: migration_20261124_114708_parity_signatures.up,
+    down: migration_20261124_114708_parity_signatures.down,
+    name: '20261124_114708_parity_signatures'
   },
 ];

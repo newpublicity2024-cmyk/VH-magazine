@@ -99,6 +99,14 @@ export const Articles: CollectionConfig = {
       },
     },
     {
+      // The byline, as vh.ma prints it (distinct from `author`, the account that edits it).
+      name: 'signature',
+      type: 'relationship',
+      relationTo: 'authors',
+      label: 'Signature',
+      admin: { position: 'sidebar' },
+    },
+    {
       name: 'tags',
       type: 'relationship',
       relationTo: 'tags',

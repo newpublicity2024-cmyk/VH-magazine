@@ -69,6 +69,8 @@ type Converted = {
   categoryPath: string
   /** The post's other WordPress categories (sommaire excluded) — converter of 2026-11-24 on. */
   secondaryCategoryWpIds?: number[]
+  /** vh.ma's byline (converter of 2026-11-24 on, from the post-page crawl). */
+  byline?: { slug: string; name: string } | null
   tagWpIds: number[]
   featured: string | null
   isVideo: boolean
@@ -91,6 +93,7 @@ type Taxonomy = {
     description: string | null
   }[]
   tags: { wpId: number; name: string; slug: string; from: string; redirectTo: string }[]
+  authors?: { wpId: number; slug: string; name: string; posts: number }[]
 }
 
 function arg(name: string, fallback?: string): string | undefined {
@@ -230,6 +233,25 @@ async function main() {
   })
   console.log(`tags: ${tagId.size}`)
 
+  // 2b. Bylines (vh.ma's signatures, parity pass 2026-11-24): by slug, name converged.
+  const authorId = new Map<string, number>()
+  for (const a of taxonomy.authors ?? []) {
+    const found = await payload.find({ collection: 'authors', where: { slug: { equals: a.slug } }, limit: 1, depth: 0, overrideAccess: true })
+    const have = found.docs[0]
+    try {
+      if (!have) {
+        const doc = await payload.create({ collection: 'authors', data: { name: a.name, slug: a.slug }, context: ctx, overrideAccess: true })
+        authorId.set(a.slug, doc.id as number)
+      } else {
+        if (have.name !== a.name) await payload.update({ collection: 'authors', id: have.id, data: { name: a.name }, context: ctx, overrideAccess: true })
+        authorId.set(a.slug, have.id as number)
+      }
+    } catch (e) {
+      fail({ step: 'author', slug: a.slug, error: (e as Error).message })
+    }
+  }
+  console.log(`bylines: ${authorId.size}`)
+
   // 3. Media alt text from WordPress, where WordPress has one. Direct SQL: 28k rows, and
   //    the only Media hook is revalidation, which has no request scope here anyway.
   const altRows = readJsonl<{ source_url: string; alt_text: string }>(W('media.jsonl'))
@@ -272,9 +294,10 @@ async function main() {
     seo_no_index: boolean | null
     tags: number[]
     secondary: number[]
+    signature_id: number | null
   }
   const rows = await query<Row>(
-    `select a.id, a.slug, a.title, a.excerpt, a.featured_image_id, a.body, a.category_id,
+    `select a.id, a.slug, a.title, a.excerpt, a.featured_image_id, a.body, a.category_id, a.signature_id,
             a.published_at, a.is_video, a.video_url, a.seo_title, a.seo_description,
             a.seo_canonical_u_r_l, a.seo_no_index,
             coalesce((select array_agg(r.tags_id order by r.tags_id) from articles_rels r
@@ -325,6 +348,7 @@ async function main() {
     body: root.children?.length ? { root } : null,
     category,
     secondaryCategories: secondaryOf(r),
+    signature: r.byline ? (authorId.get(r.byline.slug) ?? null) : null,
     tags: tagsOf(r),
     isVideo: r.isVideo,
     videoUrl: r.videoUrl ?? null,
@@ -346,6 +370,7 @@ async function main() {
     if (have.category_id !== want.category) d.push('category')
     if (sorted(have.tags) !== sorted(want.tags)) d.push('tags')
     if (sorted(have.secondary) !== sorted(want.secondaryCategories)) d.push('secondaryCategories')
+    if ((have.signature_id ?? null) !== want.signature) d.push('signature')
     if (Boolean(have.is_video) !== want.isVideo) d.push('isVideo')
     if ((have.video_url ?? null) !== want.videoUrl) d.push('videoUrl')
     if (
@@ -456,6 +481,7 @@ async function main() {
           body: (root.children?.length ? { root } : undefined) as never,
           category,
           secondaryCategories: secondaryOf(r),
+          signature: r.byline ? (authorId.get(r.byline.slug) ?? undefined) : undefined,
           tags: r.tagWpIds.map((t) => tagId.get(t)).filter((t): t is number => Boolean(t)),
           publishedAt: r.publishedAt,
           isVideo: r.isVideo,

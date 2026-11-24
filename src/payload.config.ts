@@ -29,6 +29,7 @@ import { Banners } from './collections/Banners'
 import { Categories } from './collections/Categories'
 import { ContactMessages } from './collections/ContactMessages'
 import { MagazineIssues } from './collections/MagazineIssues'
+import { Authors } from './collections/Authors'
 import { Media } from './collections/Media'
 import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
 import { Redirects } from './collections/Redirects'
@@ -92,6 +93,7 @@ export default buildConfig({
   },
   collections: [
     Articles,
+    Authors,
     Categories,
     Tags,
     MagazineIssues,

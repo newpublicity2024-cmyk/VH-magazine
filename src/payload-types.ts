@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     articles: Article;
+    authors: Author;
     categories: Category;
     tags: Tag;
     'magazine-issues': MagazineIssue;
@@ -85,6 +86,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    authors: AuthorsSelect<false> | AuthorsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
     'magazine-issues': MagazineIssuesSelect<false> | MagazineIssuesSelect<true>;
@@ -179,6 +181,7 @@ export interface Article {
    * L’article apparaît aussi dans ces rubriques, sans changer son URL.
    */
   secondaryCategories?: (number | Category)[] | null;
+  signature?: (number | null) | Author;
   tags?: (number | Tag)[] | null;
   author?: (number | null) | User;
   publishedAt: string;
@@ -309,6 +312,20 @@ export interface Category {
     canonicalURL?: string | null;
     noIndex?: boolean | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors".
+ */
+export interface Author {
+  id: number;
+  name: string;
+  /**
+   * L’adresse de sa page : /author/<identifiant>/ (celle de vh.ma pour les signatures migrées).
+   */
+  slug: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -491,6 +508,10 @@ export interface PayloadLockedDocument {
         value: number | Article;
       } | null)
     | ({
+        relationTo: 'authors';
+        value: number | Author;
+      } | null)
+    | ({
         relationTo: 'categories';
         value: number | Category;
       } | null)
@@ -579,6 +600,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   body?: T;
   category?: T;
   secondaryCategories?: T;
+  signature?: T;
   tags?: T;
   author?: T;
   publishedAt?: T;
@@ -597,6 +619,16 @@ export interface ArticlesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors_select".
+ */
+export interface AuthorsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -3,7 +3,7 @@ import type { Where } from 'payload'
 
 import { getPayloadClient } from '@/lib/payload'
 import { categoryPath, issueUrl } from '@/lib/routes'
-import type { Article, Banner, Category, Homepage, MagazineIssue, SiteSetting } from '@/payload-types'
+import type { Article, Author, Banner, Category, Homepage, MagazineIssue, SiteSetting } from '@/payload-types'
 
 /**
  * Read layer for the frontend. Everything goes through the Payload Local API
@@ -319,6 +319,30 @@ export const getCategoryPage = cache(
       totalPages: result.totalPages,
       page: result.page ?? page,
     }
+  },
+)
+
+/** A byline by its slug (vh.ma's /author/<slug>/). */
+export const getAuthorBySlug = cache(async (slug: string): Promise<Author | null> => {
+  const payload = await getPayloadClient()
+  const res = await payload.find({ collection: 'authors', where: { slug: { equals: slug } }, limit: 1, depth: 0 })
+  return (res.docs[0] as Author) ?? null
+})
+
+/** One page of a byline's published articles, newest first — vh.ma's author archive. */
+export const getAuthorPage = cache(
+  async (authorId: number, page: number, pageSize: number): Promise<PagedArticles> => {
+    const payload = await getPayloadClient()
+    const result = await payload.find({
+      collection: 'articles',
+      where: { and: [{ signature: { equals: authorId } }, { _status: { equals: 'published' } }] },
+      sort: BY_DATE,
+      limit: pageSize,
+      page,
+      depth: 2,
+      select: CARD_SELECT,
+    })
+    return { docs: result.docs as Article[], totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page ?? page }
   },
 )
 

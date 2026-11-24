@@ -37,15 +37,18 @@ async function main() {
   const rows = readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as Row)
   const articleViews = new Map<string, number>()
   const issueViews = new Map<string, number>()
+  const viewsByPath = new Map<string, number>()
   let unreadable = 0
   for (const r of rows) {
     if (r.status !== 200 || r.views == null) {
       unreadable++
       continue
     }
-    const seg = new URL(r.url).pathname.split('/').filter(Boolean)
+    const pathname = new URL(r.url).pathname
+    const seg = pathname.split('/').filter(Boolean)
     const slug = decodeURIComponent(seg.at(-1) ?? '')
     ;(seg[0] === 'sommaire' ? issueViews : articleViews).set(slug, r.views)
+    viewsByPath.set(pathname, r.views)
   }
 
   const set = async (table: 'articles' | 'magazine_issues', m: Map<string, number>) => {
@@ -66,14 +69,28 @@ async function main() {
   }
   const a = await set('articles', articleViews)
   const i = await set('magazine_issues', issueViews)
-  const top = await query<{ slug: string; view_count: string }>(
-    'select slug, view_count::text from articles order by view_count desc, published_at desc limit 5',
+  // Posts this site re-slugged (Arabic or superscript characters, 48 on 2026-11-24): vh.ma's URL
+  // is not ours, but the import left a redirect from it — follow that to the article.
+  const viaRedirect = await query<{ n: string; matched: string }>(
+    `with v as (select unnest($1::text[]) as path, unnest($2::numeric[]) as views),
+          hit as (select a.id, v.views from v
+                    join redirects r on r."from" = v.path
+                    join articles a on r."to" like '%/' || a.slug || '/'
+                   where not exists (select 1 from articles x where '/' || x.slug || '/' = '/' || split_part(rtrim(v.path, '/'), '/', -1) || '/')),
+          u as (update articles t set view_count = hit.views from hit
+                 where t.id = hit.id and t.view_count is distinct from hit.views returning 1)
+     select (select count(*) from u)::text as n, (select count(*) from hit)::text as matched`,
+    [[...viewsByPath.keys()], [...viewsByPath.values()]],
+  )
+  // Sorted on the numeric column, not on the text the report prints (that sorted "999" first).
+  const top = await query<{ slug: string; views: string }>(
+    'select slug, view_count::text as views from articles order by articles.view_count desc, published_at desc limit 5',
   )
   console.log(
     `view counts from ${rows.length} vh.ma pages (${unreadable} without a readable counter):\n` +
-      `  articles: ${a.counted} counted, ${a.matched} matched, ${a.changed} changed\n` +
+      `  articles: ${a.counted} counted, ${a.matched} matched by slug + ${viaRedirect[0].matched} through their re-slug redirect, ${a.changed + Number(viaRedirect[0].n)} changed\n` +
       `  issues:   ${i.counted} counted, ${i.matched} matched, ${i.changed} changed\n` +
-      `  top articles: ${top.map((t) => `${t.slug} ${t.view_count}`).join(' · ')}`,
+      `  top articles: ${top.map((t) => `${t.slug} ${t.views}`).join(' · ')}`,
   )
   await getPool().end()
 }

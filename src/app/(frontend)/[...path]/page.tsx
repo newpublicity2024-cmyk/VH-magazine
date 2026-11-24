@@ -14,11 +14,11 @@ import { ViewCounter } from '@/components/ViewCounter'
 import { formatDate, isoDate } from '@/lib/format'
 import { readingMinutes } from '@/lib/reading'
 import { getArticleBySlug, getRelatedArticles, getSiteSettings } from '@/lib/queries'
-import { articleUrl, categoryPath, categoryUrl } from '@/lib/routes'
+import { articleUrl, authorUrl, categoryPath, categoryUrl } from '@/lib/routes'
 import { absoluteFileUrl, absoluteUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
 import { typoFr } from '@/lib/typo-fr'
-import type { Article, Category, Media, Tag } from '@/payload-types'
+import type { Article, Author, Category, Media, Tag } from '@/payload-types'
 
 /**
  * The lede is shown only when it was written by hand (DESIGN-SPEC-R3 §5.2). Migrated
@@ -149,6 +149,9 @@ export default async function ArticlePage({ params }: Params) {
 
   const absolute = absoluteUrl(canonical)
 
+  // vh.ma signs every post ("La Rédaction" or a journalist): the byline, linking to its archive.
+  const signature =
+    article.signature && typeof article.signature === 'object' ? (article.signature as Author) : null
   const newsArticle = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -161,6 +164,14 @@ export default async function ArticlePage({ params }: Params) {
     image: image?.url ? [absoluteFileUrl(image.url)] : undefined,
     articleSection: category?.name,
     inLanguage: 'fr',
+    author: signature
+      ? {
+          // vh.ma's house byline "La Rédaction" (slug vh) is the newsroom, not a person.
+          '@type': signature.slug === 'vh' ? 'Organization' : 'Person',
+          name: signature.name,
+          url: absoluteUrl(authorUrl(signature)),
+        }
+      : { '@type': 'Organization', name: SITE.name },
     publisher: {
       '@type': 'Organization',
       name: SITE.name,
@@ -205,6 +216,17 @@ export default async function ArticlePage({ params }: Params) {
             <time data-date dateTime={isoDate(article.publishedAt)}>
               {formatDate(article.publishedAt)}
             </time>
+            {signature ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span data-byline>
+                  Par{' '}
+                  <Link href={authorUrl(signature)} className="vh-text-link" rel="author">
+                    {typoFr(signature.name)}
+                  </Link>
+                </span>
+              </>
+            ) : null}
             <span aria-hidden="true">·</span>
             <span data-reading-time>{typoFr(`${minutes} min de lecture`)}</span>
           </div>
