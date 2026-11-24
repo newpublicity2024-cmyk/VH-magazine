@@ -56,3 +56,15 @@ vercel-production-env.txt
 probe-*.mts
 # Production admin credential (rotated 2026-11-19; local only)
 production-admin.txt
+
+# Claude instructions, plans, ledgers and specs stay local (user decision 2026-11-24): only the
+# project's code is pushed. Backed up in ../VH-magazine-local-docs-backup-2026-11-24.
+/CLAUDE.md
+/LAUNCH.md
+/DEPLOY.md
+/PLAN*.md
+/GATES*.md
+/DESIGN-SPEC*.md
+/BACKOFFICE.md
+/vh-magazine-website-spec.md
+/vh_homepage_wireframe.svg
