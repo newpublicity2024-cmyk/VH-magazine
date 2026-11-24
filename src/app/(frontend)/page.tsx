@@ -8,6 +8,7 @@ import { CategoryBlock } from '@/components/CategoryBlock'
 import { CoverGrid } from '@/components/CoverGrid'
 import { DossierStrip } from '@/components/DossierStrip'
 import { InstagramCard } from '@/components/InstagramCard'
+import { KiosqueCover } from '@/components/KiosqueCover'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { PromoBanner } from '@/components/PromoBanner'
 import { SectionTitle } from '@/components/SectionHeader'
@@ -58,13 +59,13 @@ export default async function HomePage() {
   // One buildSafe around the whole batch rather than ten: if the database is
   // unreachable during a build, every one of these fails for the same reason,
   // and a half-populated homepage would be more confusing than an empty one.
-  const [actu, lifestyle, moteur, videos, people, mostRead, latest, issues, banners, homepage] =
+  const [actu, lifestyle, moteur, videos, people, mostRead, latest, issues, banners, homepage, cigars] =
     await buildSafe(
       () =>
         Promise.all([
-          getArticlesByCategory('actualite-news-express-maroc', 4),
-          getArticlesByCategory('lifestyle-homme-maroc', 4),
-          getArticlesByCategory('moteur', 4),
+          getArticlesByCategory('actualite-news-express-maroc', 4, true),
+          getArticlesByCategory('lifestyle-homme-maroc', 4, true),
+          getArticlesByCategory('moteur', 4, true),
           getArticlesByCategory('video', 6),
           getArticlesByCategory('people-celebrites', 5),
           getMostRead(5),
@@ -72,14 +73,18 @@ export default async function HomePage() {
           getIssues(4),
           getBanners(),
           getHomepageGlobal(),
+          // vh.ma's Chroniques cigare: the five latest posts filed (in any position) under vitoles-volutes.
+          getArticlesByCategory('vitoles-volutes', 5),
         ]),
-      [[], [], [], [], [], [], [], [], {}, {} as Awaited<ReturnType<typeof getHomepageGlobal>>] as const as never,
+      [[], [], [], [], [], [], [], [], {}, {} as Awaited<ReturnType<typeof getHomepageGlobal>>, []] as const as never,
       'homepage',
     )
 
-  const chroniques = (homepage.chroniquesCigare || []).filter(
+  // Hand-picked in the admin when set; otherwise vh.ma's own rule (latest five of vitoles-volutes).
+  const picked = (homepage.chroniquesCigare || []).filter(
     (a): a is Article => typeof a === 'object' && a !== null,
   )
+  const chroniques = picked.length ? picked : (cigars as Article[])
   const dossiers = homepage.dossiers || []
   const coolDrives = banners['cool-drives']
 
@@ -149,8 +154,9 @@ export default async function HomePage() {
             </div>
 
             <aside data-region="sidebar" data-section="sidebar" aria-label="Colonne latérale">
-              <SidebarWidget title="Numéro collector" widgetKey="collector-promo">
-                <PromoBanner banner={banners.collector} />
+              {/* vh.ma's "En kiosque": the latest issue's cover (falls back to the collector banner) */}
+              <SidebarWidget title="En kiosque" widgetKey="collector-promo">
+                {issues[0] ? <KiosqueCover issue={issues[0]} /> : <PromoBanner banner={banners.collector} />}
               </SidebarWidget>
 
               <SidebarWidget title="The Shift Podcast" widgetKey="podcast">

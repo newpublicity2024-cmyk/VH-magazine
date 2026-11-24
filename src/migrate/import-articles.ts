@@ -67,6 +67,8 @@ type Converted = {
   modifiedAt: string
   categoryWpId: number
   categoryPath: string
+  /** The post's other WordPress categories (sommaire excluded) — converter of 2026-11-24 on. */
+  secondaryCategoryWpIds?: number[]
   tagWpIds: number[]
   featured: string | null
   isVideo: boolean
@@ -269,6 +271,7 @@ async function main() {
     seo_canonical_u_r_l: string | null
     seo_no_index: boolean | null
     tags: number[]
+    secondary: number[]
   }
   const rows = await query<Row>(
     `select a.id, a.slug, a.title, a.excerpt, a.featured_image_id, a.body, a.category_id,
@@ -276,7 +279,10 @@ async function main() {
             a.seo_canonical_u_r_l, a.seo_no_index,
             coalesce((select array_agg(r.tags_id order by r.tags_id) from articles_rels r
                        where r.parent_id = a.id and r.path = 'tags' and r.tags_id is not null),
-                     '{}') as tags
+                     '{}') as tags,
+            coalesce((select array_agg(r.categories_id order by r.categories_id) from articles_rels r
+                       where r.parent_id = a.id and r.path = 'secondaryCategories' and r.categories_id is not null),
+                     '{}') as secondary
        from articles a`,
   )
   const byId = new Map(rows.map((r) => [r.id, r]))
@@ -305,6 +311,10 @@ async function main() {
   const tagsOf = (r: Converted) => [
     ...new Set(r.tagWpIds.map((t) => tagId.get(t)).filter((t): t is number => Boolean(t))),
   ]
+  /** Categories the post carries besides its URL's, as ids (unknown ones are taxonomy gaps). */
+  const secondaryOf = (r: Converted) => [
+    ...new Set((r.secondaryCategoryWpIds ?? []).map((c) => catId.get(c)).filter((c): c is number => Boolean(c))),
+  ]
   /** What the conversion says an article holds, in Payload's field names (null clears). */
   const content = (r: Converted, root: LexNode, featuredImage: number, category: number) => ({
     title: r.title,
@@ -314,6 +324,7 @@ async function main() {
     // no content on WordPress → no body (an empty Lexical root is not a valid document)
     body: root.children?.length ? { root } : null,
     category,
+    secondaryCategories: secondaryOf(r),
     tags: tagsOf(r),
     isVideo: r.isVideo,
     videoUrl: r.videoUrl ?? null,
@@ -334,6 +345,7 @@ async function main() {
     if (have.featured_image_id !== want.featuredImage) d.push('featuredImage')
     if (have.category_id !== want.category) d.push('category')
     if (sorted(have.tags) !== sorted(want.tags)) d.push('tags')
+    if (sorted(have.secondary) !== sorted(want.secondaryCategories)) d.push('secondaryCategories')
     if (Boolean(have.is_video) !== want.isVideo) d.push('isVideo')
     if ((have.video_url ?? null) !== want.videoUrl) d.push('videoUrl')
     if (
@@ -443,6 +455,7 @@ async function main() {
           // no content on WordPress → no body (an empty Lexical root is not a valid document)
           body: (root.children?.length ? { root } : undefined) as never,
           category,
+          secondaryCategories: secondaryOf(r),
           tags: r.tagWpIds.map((t) => tagId.get(t)).filter((t): t is number => Boolean(t)),
           publishedAt: r.publishedAt,
           isVideo: r.isVideo,

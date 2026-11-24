@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import type { Metadata } from 'next'
 
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -39,6 +39,9 @@ export default async function SommairePage({ params }: Props) {
   const { slug } = await params
   const issue = await getIssueBySlug(slug)
   if (!issue) notFound()
+  // An issue presented by an article (N°202 onwards) lives at that article's URL, as on vh.ma.
+  const home = issueUrl(issue)
+  if (home !== `/sommaire/${slug}/`) permanentRedirect(home)
 
   const cover = asMedia(issue.cover)
 

@@ -1,6 +1,6 @@
 import { ArticleCard } from '@/components/ArticleCard'
 import { SidebarWidget } from '@/components/SidebarWidget'
-import type { Article } from '@/payload-types'
+import type { RankedArticle } from '@/lib/queries'
 
 /**
  * The two sidebar lists — "Les plus lus" (§5.4.5, ranked, decision D8) and "Derniers
@@ -15,7 +15,7 @@ export function ArticleList({
 }: {
   title: string
   widgetKey: string
-  articles: Article[]
+  articles: RankedArticle[]
   ranked?: boolean
 }) {
   const List = ranked ? 'ol' : 'ul'
@@ -25,9 +25,9 @@ export function ArticleList({
         {articles.map((article, i) => (
           <li key={article.id} className="py-4 first:pt-0">
             {ranked ? (
-              <ArticleCard article={article} variant="rank" rank={i + 1} />
+              <ArticleCard article={article} variant="rank" rank={i + 1} href={article.href} />
             ) : (
-              <ArticleCard article={article} variant="horizontal" />
+              <ArticleCard article={article} variant="horizontal" href={article.href} />
             )}
           </li>
         ))}

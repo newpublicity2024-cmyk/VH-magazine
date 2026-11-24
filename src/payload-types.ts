@@ -173,6 +173,10 @@ export interface Article {
    * Détermine l’URL de l’article, y compris la rubrique parente.
    */
   category: number | Category;
+  /**
+   * L’article apparaît aussi dans ces rubriques, sans changer son URL.
+   */
+  secondaryCategories?: (number | Category)[] | null;
   tags?: (number | Tag)[] | null;
   author?: (number | null) | User;
   publishedAt: string;
@@ -362,6 +366,11 @@ export interface MagazineIssue {
   summary?: string | null;
   pdf?: (number | null) | Media;
   publishedAt: string;
+  /**
+   * Si le numéro est présenté par un article, son lien mène à cet article.
+   */
+  article?: (number | null) | Article;
+  viewCount?: number | null;
   /**
    * Généré depuis le titre. Le modifier sur un article publié crée une redirection.
    */
@@ -567,6 +576,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   featuredImage?: T;
   body?: T;
   category?: T;
+  secondaryCategories?: T;
   tags?: T;
   author?: T;
   publishedAt?: T;
@@ -627,6 +637,8 @@ export interface MagazineIssuesSelect<T extends boolean = true> {
   summary?: T;
   pdf?: T;
   publishedAt?: T;
+  article?: T;
+  viewCount?: T;
   slug?: T;
   seo?:
     | T

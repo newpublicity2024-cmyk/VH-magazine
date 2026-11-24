@@ -51,6 +51,7 @@ export function ArticleCard({
   size = 'sm',
   kicker = false,
   excerpt = false,
+  href: hrefOverride,
 }: {
   article: Article
   variant?: CardVariant
@@ -65,9 +66,11 @@ export function ArticleCard({
   kicker?: boolean
   /** Show the excerpt (lead always does; horizontal lg when asked). */
   excerpt?: boolean
+  /** Link elsewhere than the article URL — an issue ranked among "Les plus lus". */
+  href?: string
 }) {
   const image = asMedia(article.featuredImage)
-  const href = articleUrl(article as Parameters<typeof articleUrl>[0])
+  const href = hrefOverride ?? articleUrl(article as Parameters<typeof articleUrl>[0])
   const title = typoFr(article.title)
   const category = asCategory(article.category)
   const dark = tone === 'dark'

@@ -82,8 +82,17 @@ export function articleUrl(article: ArticleLike): string {
   return articleUrlFromPath(categoryPath(article.category), article.slug)
 }
 
-/** `/sommaire/vh-201/` */
-export function issueUrl(issue: { slug?: string | null }): string {
+/**
+ * `/sommaire/vh-201/` — an issue's page. Since N°202 vh.ma presents an issue as an Actu article (categories sommaire +
+ * actualite); such an issue carries `article`, and its page is that article's URL. Needs the
+ * article populated with its category chain (query issues at depth 3); a bare id falls back to
+ * /sommaire/<slug>/, which 301s to the article.
+ */
+export function issueUrl(issue: { slug?: string | null; article?: ArticleLike | number | null }): string {
+  if (issue.article && typeof issue.article === 'object' && issue.article.slug) {
+    const url = articleUrl(issue.article)
+    if (url.split('/').filter(Boolean).length >= 2) return url
+  }
   return issue.slug ? `/sommaire/${issue.slug}/` : '/magazine-maroc/'
 }
 
@@ -120,8 +129,12 @@ export function pagedUrl(base: string, page: number): string {
   return page > 1 ? `${base}?page=${page}` : base
 }
 
-/** Articles per page on category listings (spec §7). Shared by the page and G22. */
-export const PAGE_SIZE = 12
+/**
+ * Articles per page on category listings. Shared by the page and G22. 14, as vh.ma (measured
+ * 2026-11-24: every category page lists 14 posts — the spec's 12 was a guess), so a WordPress
+ * /category/x/page/N/ link, which the proxy 301s to ?page=N, lands on the same posts.
+ */
+export const PAGE_SIZE = 14
 
 /**
  * `/category/moteur/?page=2` — page 1 is the bare URL, never `?page=1`.
