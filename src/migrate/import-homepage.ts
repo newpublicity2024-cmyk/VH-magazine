@@ -25,6 +25,10 @@ import { candidatePaths } from '../lib/legacy-media'
  *   homepage dossiers (image, title, text, link); Chroniques cigare left empty: the homepage
  *            applies vh.ma's own rule, the latest five posts filed under vitoles-volutes
  *   site settings: the default share image (vh.ma's og:image)
+ *   grand-angle global: the Grand Angle page's hand-arranged run of dossiers, in vh.ma's order —
+ *            each path resolved to an article by its URL or through the redirects (former slugs:
+ *            run import-parity-redirects.ts first); a path that resolves to nothing (dead on
+ *            vh.ma too) is reported and skipped
  * Images resolve to Media by legacy path with the /api/legacy-media rules (-WxH folded…).
  * Idempotent; refuses any database but vh_migration.
  */
@@ -39,6 +43,19 @@ type Survey = {
   coolDrives: Slot
   grandAngle: Slot
   dossiers: { image: string; imageHref: string | null; title: string; body: string | null; linkUrl: string; linkLabel: string }[]
+  grandAnglePage?: string[]
+}
+
+/** One comparable form of a path: decoded, NFC, one trailing slash. */
+const canon = (p: string): string => {
+  let s = p.trim()
+  try {
+    s = decodeURIComponent(s)
+  } catch {
+    /* keep */
+  }
+  s = s.normalize('NFC')
+  return s.endsWith('/') ? s : `${s}/`
 }
 
 const arg = (name: string): string | undefined => {
@@ -119,6 +136,40 @@ async function main() {
   if (s.ogImage) {
     await payload.updateGlobal({ slug: 'site-settings', data: { defaultOgImage: media(s.ogImage, 'og:image') }, overrideAccess: true })
     lines.push(`site settings: default share image ${s.ogImage}`)
+  }
+  if (s.grandAnglePage?.length) {
+    const cats = new Map(
+      (await query<{ id: number; slug: string; parent_id: number | null }>('select id, slug, parent_id from categories')).map((c) => [c.id, c]),
+    )
+    const catPath = (id: number | null): string => {
+      const out: string[] = []
+      for (let c = id ? cats.get(id) : undefined, d = 0; c && d < 10; c = c.parent_id ? cats.get(c.parent_id) : undefined, d++) out.unshift(c.slug)
+      return out.join('/')
+    }
+    const articleAt = new Map(
+      (await query<{ id: number; slug: string; category_id: number }>(`select id, slug, category_id from articles where _status = 'published'`)).map(
+        (a) => [canon(`/${catPath(a.category_id)}/${a.slug}/`), a.id],
+      ),
+    )
+    const redirectFrom = new Map((await query<{ from: string; to: string }>('select "from", "to" from redirects')).map((r) => [canon(r.from), r.to]))
+    const ids: number[] = []
+    const skipped: string[] = []
+    for (const p of s.grandAnglePage) {
+      let c = canon(p)
+      let id: number | undefined
+      for (let hop = 0; hop < 4 && id === undefined; hop++) {
+        id = articleAt.get(c)
+        if (id === undefined) {
+          const t = redirectFrom.get(c)
+          if (!t) break
+          c = canon(t)
+        }
+      }
+      if (id === undefined) skipped.push(p)
+      else if (!ids.includes(id)) ids.push(id)
+    }
+    await payload.updateGlobal({ slug: 'grand-angle', data: { dossiers: ids }, overrideAccess: true })
+    lines.push(`Grand Angle page: ${ids.length} dossiers in vh.ma's order${skipped.length ? `; skipped (no article here, dead on vh.ma): ${skipped.join(' ')}` : ''}`)
   }
   console.log(`homepage from vh.ma (surveyed ${s.fetchedAt}):\n  ${lines.join('\n  ')}`)
   process.exit(0)

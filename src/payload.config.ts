@@ -34,6 +34,7 @@ import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
 import { Redirects } from './collections/Redirects'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
+import { GrandAngle } from './globals/GrandAngle'
 import { Homepage } from './globals/Homepage'
 import { SiteSettings } from './globals/SiteSettings'
 
@@ -101,7 +102,7 @@ export default buildConfig({
     Media,
     Users,
   ],
-  globals: [Homepage, SiteSettings],
+  globals: [Homepage, GrandAngle, SiteSettings],
   // Trimmed to what a non-technical journalist actually uses. h2/h3 only —
   // the page's single h1 is the article title, and letting an editor drop
   // another h1 into the body would break the document outline (spec §9).

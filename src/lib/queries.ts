@@ -17,6 +17,12 @@ import type { Article, Banner, Category, Homepage, MagazineIssue, SiteSetting } 
  * tolerates deeper trees by terminating at the first unpopulated ancestor.
  */
 
+/**
+ * Newest first; equal dates (17 publication times are shared by several articles) in import
+ * order, which follows WordPress's ids — as vh.ma lists them (2023-11-05 15:06 Essai DS4 pair).
+ */
+const BY_DATE = ['-publishedAt', 'id']
+
 /** Fields the card components actually read. Keeps the body out of list queries. */
 const CARD_SELECT = {
   title: true,
@@ -106,7 +112,7 @@ export const getArticlesByCategory = cache(
           ...(skip.length ? [{ id: { not_in: skip } }] : []),
         ],
       },
-      sort: '-publishedAt',
+      sort: BY_DATE,
       limit,
       depth: 2,
       select: CARD_SELECT,
@@ -169,7 +175,7 @@ export const getLatestArticles = cache(async (limit: number): Promise<Article[]>
   const result = await payload.find({
     collection: 'articles',
     where: { _status: { equals: 'published' } },
-    sort: '-publishedAt',
+    sort: BY_DATE,
     limit,
     depth: 2,
     select: CARD_SELECT,
@@ -220,6 +226,18 @@ export const getBanners = cache(async (): Promise<Record<string, Banner>> => {
 export const getHomepageGlobal = cache(async (): Promise<Homepage> => {
   const payload = await getPayloadClient()
   return (await payload.findGlobal({ slug: 'homepage', depth: 2 })) as Homepage
+})
+
+/**
+ * The Grand Angle page's curated dossiers, in order (vh.ma's page is hand-arranged). Depth 3:
+ * global → article → category → parent, for the article URLs. Empty when not curated.
+ */
+export const getGrandAngleDossiers = cache(async (): Promise<Article[]> => {
+  const payload = await getPayloadClient()
+  const g = await payload.findGlobal({ slug: 'grand-angle', depth: 3 })
+  return ((g.dossiers ?? []) as (Article | number)[]).filter(
+    (a): a is Article => typeof a === 'object' && a !== null && a._status === 'published',
+  )
 })
 
 export const getSiteSettings = cache(async (): Promise<SiteSetting> => {
@@ -289,7 +307,7 @@ export const getCategoryPage = cache(
     const result = await payload.find({
       collection: 'articles',
       where: { and: [inCategories(ids), { _status: { equals: 'published' } }] },
-      sort: '-publishedAt',
+      sort: BY_DATE,
       limit: pageSize,
       page,
       depth: 2,
@@ -324,7 +342,7 @@ export const getRelatedArticles = cache(
           { _status: { equals: 'published' } },
         ],
       },
-      sort: '-publishedAt',
+      sort: BY_DATE,
       limit,
       depth: 2,
       select: CARD_SELECT,
@@ -342,7 +360,7 @@ export async function getAllPublishedArticles(): Promise<Article[]> {
     const res = await payload.find({
       collection: 'articles',
       where: { _status: { equals: 'published' } },
-      sort: '-publishedAt',
+      sort: BY_DATE,
       limit: 500,
       page,
       depth: 2,

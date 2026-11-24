@@ -6,7 +6,7 @@ import { Listing, ListingHeader } from '@/components/Listing'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Pagination } from '@/components/Pagination'
 import { buildSafe } from '@/lib/build-safe'
-import { getCategoryByPath, getCategoryPage, getSiteSettings } from '@/lib/queries'
+import { getCategoryByPath, getCategoryPage, getGrandAngleDossiers, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, STATIC_ROUTES, categoryUrl, pagedUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
 
@@ -17,8 +17,10 @@ import { buildMetadata, ogImageUrl } from '@/lib/seo'
  * children, /grand-angle/{child}/{slug}/. Here it lists that whole tree, newest
  * first, paginated like a category page.
  *
- * The live page's hand-arranged dossier tiles are editorial content, not data;
- * they belong to the WordPress-pages migration, not to this route.
+ * The live page is hand-arranged: a curated run of dossiers, not the category's latest
+ * posts. Since the parity pass (2026-11-24) that run is the `grand-angle` global, imported
+ * from vh.ma; this route shows it, in order, on one page. Not curated → the category tree,
+ * newest first, paginated like a category page.
  */
 export const revalidate = 900
 
@@ -49,17 +51,20 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function GrandAnglePage({ searchParams }: Props) {
   const page = pageNumber((await searchParams).page)
 
-  const [category, result] = await Promise.all([
+  const [category, curated, listing] = await Promise.all([
     buildSafe(() => getCategoryByPath([CATEGORY]), null, STATIC_ROUTES.grandAngle),
+    buildSafe(() => getGrandAngleDossiers(), [], STATIC_ROUTES.grandAngle),
     buildSafe(
       () => getCategoryPage(CATEGORY, page, PAGE_SIZE),
       { docs: [], totalDocs: 0, totalPages: 0, page },
       STATIC_ROUTES.grandAngle,
     ),
   ])
+  // The curated run is a single page, as on vh.ma.
+  const result = curated.length ? { docs: curated, totalDocs: curated.length, totalPages: 1, page: 1 } : listing
 
-  // Beyond the end is a 404, never an empty indexable page.
-  if (page > 1 && result.docs.length === 0) notFound()
+  // Beyond the end is a 404, never an empty indexable page (the curated run has one page).
+  if (page > 1 && (curated.length > 0 || result.docs.length === 0)) notFound()
 
   return (
     <div className="vh-container pt-8 lg:pt-12">

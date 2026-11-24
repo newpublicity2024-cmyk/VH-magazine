@@ -105,10 +105,12 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     homepage: Homepage;
+    'grand-angle': GrandAngle;
     'site-settings': SiteSetting;
   };
   globalsSelect: {
     homepage: HomepageSelect<false> | HomepageSelect<true>;
+    'grand-angle': GrandAngleSelect<false> | GrandAngleSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
@@ -867,6 +869,19 @@ export interface Homepage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "grand-angle".
+ */
+export interface GrandAngle {
+  id: number;
+  /**
+   * Dans l’ordre d’affichage. Vide : la page liste la rubrique Grand Angle, les plus récents d’abord.
+   */
+  dossiers?: (number | Article)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
  */
 export interface SiteSetting {
@@ -904,6 +919,16 @@ export interface HomepageSelect<T extends boolean = true> {
         linkLabel?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "grand-angle_select".
+ */
+export interface GrandAngleSelect<T extends boolean = true> {
+  dossiers?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
