@@ -33,7 +33,7 @@ const inter = localFont({
 })
 
 const archivo = localFont({
-  src: [{ path: '../../fonts/archivo-latin.woff2', weight: '600 700', style: 'normal' }],
+  src: [{ path: '../../fonts/archivo-latin.woff2', weight: '600 900', style: 'normal' }],
   display: 'swap',
   variable: '--font-archivo',
 })

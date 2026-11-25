@@ -10,6 +10,7 @@ import { buildSafe } from '@/lib/build-safe'
 import { getCategoryByPath, getCategoryPage, getGrandAngleDossiers, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, STATIC_ROUTES, categoryUrl, pagedUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
+import { GRAND_ANGLE_HEADING } from '@/lib/vh-headings'
 
 /**
  * "Grand Angle" — the primary-nav destination (spec §4.2), at the live site's
@@ -76,7 +77,7 @@ export default async function GrandAnglePage({ searchParams }: Props) {
         ]}
       />
 
-      <ListingHeader title={TITLE} page={page}>
+      <ListingHeader title={TITLE} page={page} vh={GRAND_ANGLE_HEADING}>
         <p className="type-copy mt-4 max-w-[45rem] text-ink-2">{DESCRIPTION}</p>
         {category ? (
           <p className="type-copy-sm mt-3">

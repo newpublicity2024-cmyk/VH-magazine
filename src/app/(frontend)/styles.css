@@ -352,33 +352,81 @@
     }
   }
 
-  /* ── Section headers (spec §4.5) ──────────────────────────────────────── */
+  /* ── Section headings: vh.ma's "VH ___" (components/SectionHeader.tsx) ────
+   * No background: the outline VH mark, the word, a strip in the section's colour to the
+   * column's edge, all on one bottom line (flex baselines: the mark and the strip have none,
+   * so theirs is their bottom edge). Sized from the mark's height, in vh.ma's proportions;
+   * 40 px of mark keeps the old 44 px band's height. Strip colours are vh.ma's, sampled from
+   * its banner images (2026-11-25) — section colours, not accents. */
   .vh-band {
+    --vh-mark: 40px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    align-items: baseline;
     min-height: 44px;
-    padding-inline: 16px;
-    background-color: var(--color-band);
-    color: var(--color-white);
+    color: var(--color-ink);
   }
   .vh-dark .vh-band {
-    padding-inline: 0;
-    box-shadow: inset 0 -1px 0 var(--hairline-dark);
-  }
-  .vh-more {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--color-night-ink-2);
-    transition: color var(--duration-hover) var(--ease-standard);
-  }
-  .vh-more:hover {
     color: var(--color-white);
   }
-  .vh-more-arrow {
-    display: inline-block;
+  .vh-band[data-strip='express'] {
+    --vh-strip: #efc926;
+  }
+  .vh-band[data-strip='lifestyle'] {
+    --vh-strip: #f27620;
+  }
+  .vh-band[data-strip='moteur'] {
+    --vh-strip: #e9242d;
+  }
+  .vh-band[data-strip='culture'] {
+    --vh-strip: #562912;
+  }
+  .vh-band[data-strip='sport'] {
+    --vh-strip: #3aa53d;
+  }
+  .vh-band[data-strip='people'] {
+    --vh-strip: #3c3c3c;
+  }
+  .vh-band[data-strip='grand-angle'] {
+    --vh-strip: #231f20;
+  }
+  .vh-band__title,
+  .vh-band__link {
+    display: flex;
+    flex: none;
+    align-items: baseline;
+    min-width: 0;
+  }
+  .vh-band__mark {
+    flex: none;
+    width: calc(var(--vh-mark) * 1628 / 1104);
+    height: var(--vh-mark);
+    overflow: visible;
+  }
+  /* After .type-band (the uppercase role), which it resizes: capitals 0.36 × the mark. */
+  .vh-band__word {
+    font-weight: 900;
+    font-size: calc(var(--vh-mark) * 0.52);
+    line-height: 1;
+    letter-spacing: 0;
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    transition: text-decoration-color var(--duration-hover) var(--ease-standard);
+  }
+  a.vh-band__link:hover .vh-band__word {
+    text-decoration-color: currentColor;
+  }
+  .vh-band__suffix {
+    margin-left: 12px;
+    white-space: nowrap;
+  }
+  .vh-band__strip {
+    flex: 1 1 0;
+    min-width: 24px;
+    height: calc(var(--vh-mark) * 0.436);
+    margin-left: calc(var(--vh-mark) * 0.45);
+    background-color: var(--vh-strip);
   }
   .vh-label-rule {
     padding-bottom: 8px;
@@ -1605,13 +1653,6 @@ html[data-fade-ready] img[data-fade]:not([data-loaded]) {
   .vh-skeleton {
     animation: vh-shimmer var(--duration-shimmer) var(--ease-standard) infinite;
   }
-  .vh-more-arrow {
-    transition: transform var(--duration-hover) var(--ease-standard);
-  }
-  .vh-more:hover .vh-more-arrow {
-    transform: translateX(2px);
-  }
-
   @media (hover: hover) {
     .vh-card:hover .vh-card-media img {
       transform: scale(1.03);

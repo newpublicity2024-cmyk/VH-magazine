@@ -42,7 +42,7 @@ const NEWSLETTER_SOURCE: Record<SidebarPlace, string> = {
  * scrolls as vh.ma's does — the shorter of the two columns holds in view (StickyColumns).
  *
  * A widget whose content is missing renders nothing at all, heading included: an empty heading
- * reads as a bug.
+ * reads as a bug. Titles are vh.ma's; its Instagram widget has none, so ours has none either.
  */
 export async function Sidebar({ place }: { place: SidebarPlace }) {
   const [issues, banners, mostRead, latest, homepage, cigars] = await buildSafe(
@@ -102,7 +102,7 @@ export async function Sidebar({ place }: { place: SidebarPlace }) {
         <NewsletterForm source={NEWSLETTER_SOURCE[place]} />
       </SidebarWidget>
 
-      <SidebarWidget title="Instagram" widgetKey="instagram">
+      <SidebarWidget widgetKey="instagram">
         <InstagramCard />
       </SidebarWidget>
 

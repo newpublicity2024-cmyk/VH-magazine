@@ -6,13 +6,14 @@ import { CategoryBlock } from '@/components/CategoryBlock'
 import { CoverGrid } from '@/components/CoverGrid'
 import { DossierStrip } from '@/components/DossierStrip'
 import { PromoBanner } from '@/components/PromoBanner'
-import { SectionTitle } from '@/components/SectionHeader'
+import { SectionHeader, SectionTitle } from '@/components/SectionHeader'
 import { WithSidebar } from '@/components/WithSidebar'
 import { getArticlesByCategory, getBanners, getHomepageGlobal, getIssues, getSiteSettings } from '@/lib/queries'
 import { STATIC_ROUTES } from '@/lib/routes'
 import { absoluteFileUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
 import { buildSafe } from '@/lib/build-safe'
+import { GRAND_ANGLE_HEADING, vhHeading } from '@/lib/vh-headings'
 
 /** Spec §9: homepage revalidates roughly every five minutes. */
 export const revalidate = 300
@@ -63,6 +64,11 @@ export default async function HomePage() {
   )
 
   const dossiers = homepage.dossiers || []
+  // vh.ma's section headings: VH EXPRESS, VH LIFESTYLE, VH MOTEUR; VH TV and VH PEOPLE on black;
+  // VH GRAND ANGLE over the dossiers.
+  const express = vhHeading('actualite-news-express-maroc')
+  const lifestyleHeading = vhHeading('lifestyle-homme-maroc')
+  const moteurHeading = vhHeading('moteur')
 
   const webSite = {
     '@context': 'https://schema.org',
@@ -106,7 +112,8 @@ export default async function HomePage() {
           <WithSidebar place="home" mainClassName="vh-stack">
             <CategoryBlock
               sectionKey="actu"
-              title="Actu"
+              title={express.word}
+              strip={express.strip}
               href="/category/actualite-news-express-maroc/"
               articles={actu}
               layout="lead"
@@ -114,14 +121,16 @@ export default async function HomePage() {
             />
             <CategoryBlock
               sectionKey="lifestyle"
-              title="Lifestyle"
+              title={lifestyleHeading.word}
+              strip={lifestyleHeading.strip}
               href="/category/lifestyle-homme-maroc/"
               articles={lifestyle}
               columns={2}
             />
             <CategoryBlock
               sectionKey="moteur"
-              title="Moteur"
+              title={moteurHeading.word}
+              strip={moteurHeading.strip}
               href="/category/moteur/"
               articles={moteur}
               columns={2}
@@ -132,7 +141,7 @@ export default async function HomePage() {
         {/* §5.9 — on black, edge to edge (decision D5) */}
         <CategoryBlock
           sectionKey="videos"
-          title="Vidéos"
+          title="TV"
           href={STATIC_ROUTES.vhTv}
           articles={videos}
           columns={3}
@@ -158,10 +167,18 @@ export default async function HomePage() {
         />
 
         <div className="vh-container vh-stack">
-          {/* §5.12 — strips STACKED full width (amendment A2) */}
-          <section data-section="dossiers" className="space-y-16" aria-label="Dossiers">
+          {/* §5.12 — strips STACKED full width (amendment A2), under vh.ma's VH GRAND ANGLE heading
+              (not a link there either) */}
+          <section
+            data-section="dossiers"
+            className="space-y-16"
+            {...(dossiers.length > 0 ? { 'aria-labelledby': 'dossiers-heading' } : { 'aria-label': 'Dossiers' })}
+          >
             {banners['le-luxe'] ? (
               <PromoBanner banner={banners['le-luxe']} sizes="(min-width: 1240px) 1176px, 100vw" />
+            ) : null}
+            {dossiers.length > 0 ? (
+              <SectionHeader word={GRAND_ANGLE_HEADING.word} strip={GRAND_ANGLE_HEADING.strip} id="dossiers-heading" />
             ) : null}
             {dossiers.map((dossier, index) => (
               <DossierStrip

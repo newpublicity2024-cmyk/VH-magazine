@@ -1,4 +1,6 @@
 import { ArticleCard } from '@/components/ArticleCard'
+import { SectionHeader } from '@/components/SectionHeader'
+import type { VhHeading } from '@/lib/vh-headings'
 import type { Article } from '@/payload-types'
 
 /**
@@ -34,16 +36,33 @@ export function Listing({ articles, page }: { articles: Article[]; page: number 
   )
 }
 
-/** The listing header (DESIGN-SPEC-R3 §5.3): page title over VH's heavy rule. */
-export function ListingHeader({ title, page, children }: { title: string; page: number; children?: React.ReactNode }) {
+/**
+ * The listing header (DESIGN-SPEC-R3 §5.3): page title over VH's heavy rule — or, for the
+ * sections vh.ma heads with a "VH ___" banner (lib/vh-headings.ts), that heading as the h1.
+ */
+export function ListingHeader({
+  title,
+  page,
+  vh,
+  children,
+}: {
+  title: string
+  page: number
+  vh?: VhHeading | null
+  children?: React.ReactNode
+}) {
   return (
     <header className="mb-10">
-      <div className="vh-label-rule">
-        <h1 className="type-h1-page text-ink">
-          {title}
-          {page > 1 ? <span className="text-meta"> — page {page}</span> : null}
-        </h1>
-      </div>
+      {vh ? (
+        <SectionHeader as="h1" word={vh.word} strip={vh.strip} suffix={page > 1 ? `— page ${page}` : null} />
+      ) : (
+        <div className="vh-label-rule">
+          <h1 className="type-h1-page text-ink">
+            {title}
+            {page > 1 ? <span className="text-meta"> — page {page}</span> : null}
+          </h1>
+        </div>
+      )}
       {children}
     </header>
   )

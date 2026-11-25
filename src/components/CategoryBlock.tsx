@@ -2,17 +2,20 @@ import Link from 'next/link'
 
 import { ArticleCard } from '@/components/ArticleCard'
 import { SectionHeader } from '@/components/SectionHeader'
+import type { VhStrip } from '@/lib/vh-headings'
 import type { Article } from '@/payload-types'
 
 /**
  * SectionHeader + a grid of cards + "Voir plus" (spec §6.5, DESIGN-SPEC-R3 §4.5–4.6, §5.1).
  *
+ * `title` is the word of vh.ma's "VH ___" heading (Express, TV…) and `strip` its colour;
  * `layout="lead"` opens with one `lead` card across the block and the rest in a row of
  * three (Actu); `tone="dark"` paints the section black edge to edge with its own
  * container (Vidéos and People, decision D5). Column counts are passed in, not guessed.
  */
 export function CategoryBlock({
   title,
+  strip,
   href,
   articles,
   columns = 2,
@@ -24,6 +27,8 @@ export function CategoryBlock({
   moreLabel = 'Voir plus',
 }: {
   title: string
+  /** The heading strip's colour (none on the dark sections, as on vh.ma). */
+  strip?: VhStrip
   href: string
   articles: Article[]
   columns?: 2 | 3 | 5
@@ -45,7 +50,7 @@ export function CategoryBlock({
 
   const body = (
     <>
-      <SectionHeader title={title} href={href} id={`${sectionKey}-heading`} />
+      <SectionHeader word={title} strip={dark ? undefined : strip} href={href} id={`${sectionKey}-heading`} />
 
       {layout === 'lead' && first ? (
         <div className="mt-6">
