@@ -8,8 +8,9 @@
  *             an author page, Le Club VH's image and link, and /le-luxe/.
  *   inside    SB3 — on the home page Le Club VH, Chroniques cigare, the collector and Cool Drives
  *             are inside the panel and nowhere else.
- *   scroll    SB4 — the panel scrolls with the page (real wheel events), never sticky, no scroll
- *             of its own; the control makes it sticky and must be caught.
+ *   scroll    SB4 — the columns scroll as vh.ma's (real wheel events): the shorter holds, no blank
+ *             space beside the taller, no column leaves its row, no scroll of its own; the
+ *             control disables the offsets and must be caught.
  *   geometry  SB5 — 300 px panel, 48 px gap, main column = the rest; below at 390 px.
  *   widgets   SB6 — each widget works as on vh.ma (slider buttons, autoplay, reduced motion…).
  *   leluxe    SB7 — a category's bare slug redirects to its address; unknown bare slugs 404.
@@ -172,60 +173,103 @@ async function checkInside() {
   ok('SIDEBAR_INSIDE_OK')
 }
 
-/** Wheel down then up over the main column; the panel must move exactly with the page. */
+/**
+ * Wheel down past the row, then back up, over the main column. vh.ma's rule (its theme's sticky
+ * script on both columns, measured 2026-11-25): while the row fills the window, every column
+ * covers the window from under the sticky bar to the bottom (a column shorter than that holds
+ * under the bar) — the shorter one holds, so no blank space opens beside the taller; no column
+ * leaves its row; the panel has no scroll of its own. Returns the problems and whether a column
+ * was seen holding (moving less than the page).
+ */
 async function measureScroll(p) {
-  return p.evaluate(async () => {
+  const main = await p.$('[data-region="main-column"]')
+  const mb = await main.boundingBox()
+  await p.mouse.move(mb.x + 40, 450)
+  const issues = await p.evaluate(() => {
     const aside = document.querySelector('[data-region="sidebar"]')
-    const issues = []
-    for (let n = aside; n && n !== document.documentElement; n = n.parentElement) {
-      const pos = getComputedStyle(n).position
-      if (pos === 'sticky' || pos === 'fixed') issues.push(`${n.tagName.toLowerCase()} is position:${pos}`)
-    }
     const cs = getComputedStyle(aside)
-    if (!/visible|clip/.test(cs.overflowY) || aside.scrollHeight > aside.clientHeight + 1) issues.push(`the panel scrolls on its own (overflow-y ${cs.overflowY}, ${aside.scrollHeight}/${aside.clientHeight})`)
-    return issues
-  }).then(async (issues) => {
-    const main = await p.$('[data-region="main-column"]')
-    const mb = await main.boundingBox()
-    await p.mouse.move(mb.x + 40, 450)
-    const at = () => p.evaluate(() => ({ y: scrollY, top: document.querySelector('[data-region="sidebar"]').getBoundingClientRect().top }))
-    let prev = await at()
-    let moved = 0
-    const step = async (dy) => {
-      await p.mouse.wheel(0, dy)
-      await p.waitForTimeout(250)
-      const now = await at()
-      const dScroll = now.y - prev.y
-      const dTop = now.top - prev.top
-      moved += Math.abs(dScroll)
-      if (Math.abs(dTop + dScroll) > 1) issues.push(`at scrollY ${Math.round(now.y)} the panel moved ${Math.round(dTop)} px for a ${Math.round(dScroll)} px scroll`)
-      prev = now
-    }
-    for (let i = 0; i < 12; i++) await step(400)
-    for (let i = 0; i < 6; i++) await step(-400)
-    if (moved < 2000) issues.push(`the page scrolled only ${moved} px`)
-    return issues
+    return !/visible|clip/.test(cs.overflowY) || aside.scrollHeight > aside.clientHeight + 1
+      ? [`the panel scrolls on its own (overflow-y ${cs.overflowY}, ${aside.scrollHeight}/${aside.clientHeight})`]
+      : []
   })
+  const at = () =>
+    p.evaluate(() => {
+      const row = document.querySelector('[data-sticky-columns]')
+      const r = row.getBoundingClientRect()
+      const cols = [...row.children].map((c) => {
+        const b = c.getBoundingClientRect()
+        return { name: c.getAttribute('data-region'), top: b.top, bottom: b.bottom, h: c.offsetHeight }
+      })
+      const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-height')) || 56
+      return { y: scrollY, rowTop: r.top, rowBottom: r.bottom, cols, viewTop: bar + 24, viewBottom: innerHeight }
+    })
+  let held = false
+  let prev = await at()
+  const check = (s, dir) => {
+    for (const c of s.cols) {
+      if (c.top < s.rowTop - 1 || c.bottom > s.rowBottom + 1) issues.push(`${dir} y=${Math.round(s.y)}: ${c.name} leaves its row`)
+      if (s.rowTop <= s.viewTop && s.rowBottom >= s.viewBottom) {
+        const fits = c.h <= s.viewBottom - s.viewTop
+        const ok = fits ? Math.abs(c.top - s.viewTop) <= 1 : c.top <= s.viewTop + 1 && c.bottom >= s.viewBottom - 1
+        if (!ok) issues.push(`${dir} y=${Math.round(s.y)}: ${c.name} shows blank space (box ${Math.round(c.top)}–${Math.round(c.bottom)} in a window ${s.viewTop}–${s.viewBottom})`)
+      }
+    }
+  }
+  const step = async (dy, dir) => {
+    await p.mouse.wheel(0, dy)
+    await p.waitForTimeout(200)
+    const now = await at()
+    const dScroll = now.y - prev.y
+    now.cols.forEach((c, i) => {
+      if (Math.abs(dScroll) > 50 && Math.abs(c.top - prev.cols[i].top + dScroll) > 2) held = true
+    })
+    check(now, dir)
+    prev = now
+    return now
+  }
+  check(prev, 'down')
+  for (let i = 0, last = -1; i < 80; i++) {
+    const s = await step(300, 'down')
+    if (s.rowBottom < 0 || s.y === last) break // past the row, or the page's end
+    last = s.y
+  }
+  for (let i = 0; i < 80; i++) {
+    const s = await step(-300, 'up')
+    if (s.y <= 0) break
+  }
+  return { issues, held }
 }
 
 async function checkScroll() {
   const pages = await pickPages()
   await withBrowser(async ({ page, baseUrl }) => {
     const problems = []
+    let heldSomewhere = false
     for (const kind of ['home', 'article2', 'category']) {
       const p = await page({ width: 1440, height: 900 })
       await p.goto(baseUrl + pages[kind], { waitUntil: 'load' })
-      const issues = await measureScroll(p)
+      const heights = await p.evaluate(() => [...document.querySelector('[data-sticky-columns]').children].map((c) => `${c.getAttribute('data-region')} ${c.offsetHeight}`).join(', '))
+      const { issues, held } = await measureScroll(p)
+      heldSomewhere ||= held
       problems.push(...issues.map((x) => `${kind}: ${x}`))
-      console.log(`  ${kind}: ${issues.length ? issues.length + ' issue(s)' : 'moves 1:1 with the page, not sticky, no own scroll'}`)
+      console.log(`  ${kind} (${heights}): ${issues.length ? issues.length + ' issue(s)' : `no blank space down and up${held ? ', the shorter column held' : ''}`}`)
     }
-    // Control: the same measurement must flag a sticky panel.
+    if (!heldSomewhere) problems.push('no column ever held: nothing measured the sticky behaviour')
+    // Control: without the script's offsets, the shorter column must be caught leaving blank space.
     const c = await page({ width: 1440, height: 900 })
     await c.goto(baseUrl + pages.article2, { waitUntil: 'load' })
-    await c.addStyleTag({ content: '[data-region="sidebar"] { position: sticky !important; top: 0 !important; align-self: start; }' })
+    await c.addStyleTag({ content: '[data-sticky-columns] > * { transform: none !important; }' })
     const control = await measureScroll(c)
-    if (control.length === 0) problems.push('control: a sticky panel went unnoticed')
-    else console.log(`  control (sticky panel): caught — ${control[0]}`)
+    if (control.issues.length === 0) problems.push('control: a panel row without sticky columns went unnoticed')
+    else console.log(`  control (offsets disabled): caught — ${control.issues.find((x) => /blank/.test(x)) ?? control.issues[0]}`)
+    // At phone width the columns stack and nothing holds.
+    const m = await page({ width: 390, height: 844 })
+    await m.goto(baseUrl + pages.article2, { waitUntil: 'load' })
+    for (let i = 0; i < 8; i++) await m.mouse.wheel(0, 600)
+    await m.waitForTimeout(300)
+    const moved = await m.evaluate(() => [...document.querySelector('[data-sticky-columns]').children].filter((c) => getComputedStyle(c).transform !== 'none').length)
+    if (moved) problems.push(`390 px: ${moved} column(s) offset while stacked`)
+    else console.log('  390 px: stacked, no offsets')
     if (problems.length) throw new Error(problems.join('\n  '))
   })
   ok('SIDEBAR_SCROLL_OK')

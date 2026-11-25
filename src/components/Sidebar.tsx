@@ -38,8 +38,8 @@ const NEWSLETTER_SOURCE: Record<SidebarPlace, string> = {
  *   manquer ! · Cool Drives By Rafik Lahlou
  *
  * (vh.ma's two Google Ad Manager slots, between Instagram and Les plus lus and after Le Club VH,
- * are left out: no ad account here.) Like vh.ma's, it is one long column that scrolls with the
- * page — not sticky, no scroll of its own (vh.ma's sticky-sidebar script is never loaded).
+ * are left out: no ad account here.) It has no scrollbar of its own; beside the main column it
+ * scrolls as vh.ma's does — the shorter of the two columns holds in view (StickyColumns).
  *
  * A widget whose content is missing renders nothing at all, heading included: an empty heading
  * reads as a bug.

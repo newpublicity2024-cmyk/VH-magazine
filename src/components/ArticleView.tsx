@@ -133,6 +133,8 @@ export function ArticleView({
 
   return (
     <div className="vh-container pt-8 lg:pt-12">
+      {/* Outside the columns: StickyColumns transforms them, which would pin a fixed bar to one. */}
+      <ReadingProgress />
       <WithSidebar place="article">
         <article data-article data-source={absolute}>
           {preview ? null : (
@@ -142,7 +144,6 @@ export function ArticleView({
               <ViewCounter articleId={article.id as number} />
             </>
           )}
-          <ReadingProgress />
 
           <div>
             <header className="mx-auto max-w-[45rem]">
