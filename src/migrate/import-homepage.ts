@@ -19,9 +19,11 @@ import { candidatePaths } from '../lib/legacy-media'
  *            collector        ← EN KIOSQUE cover — only the sidebar's fallback: the panel shows
  *                               the latest issue itself (KiosqueCover)
  *            collector-sport  ← "Un collector à ne pas manquer !"
+ *            whos-who         ← Le Club VH, the sidebar's untitled image → /who-s-who-les-interviews-de-vh/
+ *                               (added 2026-11-25: the survey missed it, having no title to anchor on)
  *            cool-drives      ← "Cool Drives By Rafik Lahlou" (image → Instagram, text)
  *            le-luxe          ← the Grand Angle header above the dossier strips
- *            any other slot   → inactive (vh.ma shows no Who's Who or Les Unes banner)
+ *            any other slot   → inactive (vh.ma shows no Les Unes banner)
  *   homepage dossiers (image, title, text, link); Chroniques cigare left empty: the homepage
  *            applies vh.ma's own rule, the latest five posts filed under vitoles-volutes
  *   site settings: the default share image (vh.ma's og:image)
@@ -40,6 +42,7 @@ type Survey = {
   kiosque: Slot
   podcast: Slot
   collectorSport: Slot
+  leClub: Slot
   coolDrives: Slot
   grandAngle: Slot
   dossiers: { image: string; imageHref: string | null; title: string; body: string | null; linkUrl: string; linkLabel: string }[]
@@ -86,6 +89,7 @@ async function main() {
     { key: 'podcast', title: 'The Shift Podcast', slot: s.podcast },
     { key: 'collector', title: 'En kiosque', slot: s.kiosque },
     { key: 'collector-sport', title: 'Un collector à ne pas manquer !', slot: s.collectorSport },
+    { key: 'whos-who', title: 'Le Club VH', slot: s.leClub },
     { key: 'cool-drives', title: 'Cool Drives By Rafik Lahlou', slot: s.coolDrives },
     // vh.ma's header image has no link; the dossier images below it link to /le-luxe/.
     { key: 'le-luxe', title: 'Grand Angle', slot: s.grandAngle, link: '/le-luxe/' },
@@ -130,12 +134,28 @@ async function main() {
     linkUrl: d.linkUrl,
     linkLabel: d.linkLabel.replace('‘', '’'),
   }))
-  await payload.updateGlobal({ slug: 'homepage', data: { dossiers, chroniquesCigare: [] }, overrideAccess: true })
-  lines.push(`homepage: ${dossiers.length} dossiers; Chroniques cigare automatic (vitoles-volutes)`)
+  // Globals are written only when they differ: Payload rewrites an array's rows and a
+  // relationship's rels with new ids on every update, so an unconditional write leaves the archive
+  // differing from production row by row (GATES-SIDEBAR SB8, GATES-PARITY P7) with nothing changed.
+  const idOf = (v: unknown) => (v && typeof v === 'object' ? (v as { id: number }).id : v)
+  const home = await payload.findGlobal({ slug: 'homepage', depth: 0 })
+  const sameDossiers =
+    JSON.stringify(
+      (home.dossiers ?? []).map((d) => ({ title: d.title, body: d.body ?? '', image: idOf(d.image), linkUrl: d.linkUrl, linkLabel: d.linkLabel })),
+    ) === JSON.stringify(dossiers) && (home.chroniquesCigare ?? []).length === 0
+  if (!sameDossiers) await payload.updateGlobal({ slug: 'homepage', data: { dossiers, chroniquesCigare: [] }, overrideAccess: true })
+  lines.push(`homepage: ${dossiers.length} dossiers (${sameDossiers ? 'unchanged' : 'updated'}); Chroniques cigare automatic (vitoles-volutes)`)
 
   if (s.ogImage) {
-    await payload.updateGlobal({ slug: 'site-settings', data: { defaultOgImage: media(s.ogImage, 'og:image') }, overrideAccess: true })
-    lines.push(`site settings: default share image ${s.ogImage}`)
+    // Only when it differs: an unconditional write bumps updated_at, and the archive would then
+    // differ from production row by row (GATES-ARCHIVE A2 / GATES-PARITY P7) for nothing.
+    const og = media(s.ogImage, 'og:image')
+    const settings = await payload.findGlobal({ slug: 'site-settings', depth: 0 })
+    const current = settings.defaultOgImage && typeof settings.defaultOgImage === 'object' ? settings.defaultOgImage.id : settings.defaultOgImage
+    if (current !== og) {
+      await payload.updateGlobal({ slug: 'site-settings', data: { defaultOgImage: og }, overrideAccess: true })
+      lines.push(`site settings: default share image ${s.ogImage} (updated)`)
+    } else lines.push(`site settings: default share image ${s.ogImage} (unchanged)`)
   }
   if (s.grandAnglePage?.length) {
     const cats = new Map(
@@ -168,8 +188,12 @@ async function main() {
       if (id === undefined) skipped.push(p)
       else if (!ids.includes(id)) ids.push(id)
     }
-    await payload.updateGlobal({ slug: 'grand-angle', data: { dossiers: ids }, overrideAccess: true })
-    lines.push(`Grand Angle page: ${ids.length} dossiers in vh.ma's order${skipped.length ? `; skipped (no article here, dead on vh.ma): ${skipped.join(' ')}` : ''}`)
+    const ga = await payload.findGlobal({ slug: 'grand-angle', depth: 0 })
+    const sameRun = JSON.stringify((ga.dossiers ?? []).map(idOf)) === JSON.stringify(ids)
+    if (!sameRun) await payload.updateGlobal({ slug: 'grand-angle', data: { dossiers: ids }, overrideAccess: true })
+    lines.push(
+      `Grand Angle page: ${ids.length} dossiers in vh.ma's order (${sameRun ? 'unchanged' : 'updated'})${skipped.length ? `; skipped (no article here, dead on vh.ma): ${skipped.join(' ')}` : ''}`,
+    )
   }
   console.log(`homepage from vh.ma (surveyed ${s.fetchedAt}):\n  ${lines.join('\n  ')}`)
   process.exit(0)

@@ -2,8 +2,8 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import type { Metadata } from 'next'
 
 import { ArticleView } from '@/components/ArticleView'
-import { getArticleBySlug, getRelatedArticles, getSiteSettings } from '@/lib/queries'
-import { articleUrl } from '@/lib/routes'
+import { getArticleBySlug, getCategoryBySlug, getRelatedArticles, getSiteSettings } from '@/lib/queries'
+import { articleUrl, categoryUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
 import type { Article, Category, Media } from '@/payload-types'
 
@@ -77,6 +77,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function ArticlePage({ params }: Params) {
   const { path } = await params
+  // vh.ma serves every category archive at its bare slug (/le-luxe/ is the homepage Le Luxe
+  // banner's link): send it to the category's address here. Any other single segment 404s below.
+  if (path.length === 1) {
+    const category = await getCategoryBySlug(path[0])
+    if (category) permanentRedirect(categoryUrl(category as never))
+  }
   const found = await resolve(path)
   if (!found) notFound()
 

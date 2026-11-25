@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Listing, ListingHeader } from '@/components/Listing'
 import { Pagination } from '@/components/Pagination'
+import { WithSidebar } from '@/components/WithSidebar'
 import { getAuthorBySlug, getAuthorPage, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, authorUrl, pagedUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
@@ -63,12 +64,14 @@ export default async function AuthorPage({ params, searchParams }: Props) {
           {typoFr(`${result.totalDocs} article${result.totalDocs > 1 ? 's' : ''} signé${result.totalDocs > 1 ? 's' : ''} ${author.name}.`)}
         </p>
       </ListingHeader>
-      {result.docs.length === 0 ? (
-        <p className="type-copy text-ink-2">Aucun article signé pour le moment.</p>
-      ) : (
-        <Listing articles={result.docs} page={page} />
-      )}
-      <Pagination page={result.page} totalPages={result.totalPages} hrefFor={(n) => pagedUrl(authorUrl(author), n)} />
+      <WithSidebar place="listing">
+        {result.docs.length === 0 ? (
+          <p className="type-copy text-ink-2">Aucun article signé pour le moment.</p>
+        ) : (
+          <Listing articles={result.docs} page={page} />
+        )}
+        <Pagination page={result.page} totalPages={result.totalPages} hrefFor={(n) => pagedUrl(authorUrl(author), n)} />
+      </WithSidebar>
     </div>
   )
 }

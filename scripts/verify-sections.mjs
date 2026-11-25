@@ -1,26 +1,24 @@
 /**
- * G8 — all 14 spec §5 sections are present on the homepage, in spec order.
+ * G8 — the homepage's sections are present in vh.ma's order (spec §5 as amended 2026-11-25).
  *
  * Order is checked by comparing first-occurrence indices in the HTML, which is
  * document order. Presence alone would not catch a homepage that renders every
  * block but stacks People above Vidéos.
  *
- * Amendment A2 is enforced here too: the four blocks the wireframe drew as
- * side-by-side pairs must each be their own top-level section, not two halves
- * of a shared grid row.
+ * 2026-11-25 (user): Who's Who (Le Club VH), Chroniques cigare, the collector and Cool Drives
+ * moved into the side panel, as on vh.ma — they are panel widgets now (data-widget, gate
+ * GATES-SIDEBAR SB2/SB3), so the strict allowlist below rejects any section of theirs left
+ * behind. Amendment A2 still holds for the full-width blocks that remain: each is its own
+ * top-level section, never nested in another.
  */
 import { homepageHtml, assert, ok, sectionHtml } from './lib/harness.mjs'
 
-/** Exactly the 14 sections of spec §5, in spec order. */
+/** Exactly the homepage's sections, in order. */
 const SECTIONS = [
   'actu',
   'lifestyle',
   'moteur',
   'sidebar',
-  'whos-who',
-  'chroniques-cigare',
-  'collector',
-  'cool-drives',
   'videos',
   'magazine-banner',
   'people',
@@ -71,11 +69,11 @@ for (let i = 1; i < SECTIONS.length; i += 1) {
   )
 }
 
-// Amendment A2: these four are full-width stacked sections, never paired.
+// Amendment A2: the full-width blocks are stacked sibling sections, never paired.
 // Each must be a sibling <section>, so neither may contain another.
 for (const [outer, inner] of [
-  ['collector', 'cool-drives'],
-  ['dossiers', 'collector'],
+  ['magazine-banner', 'people'],
+  ['dossiers', 'unes'],
 ]) {
   const body = sectionHtml(html, outer)
   assert(

@@ -5,7 +5,7 @@ Self-hosted Latin subsets, loaded through `next/font/local` in `src/app/(fronten
 | File | Font | Source | Licence |
 |---|---|---|---|
 | `inter-latin.woff2` | Inter v20, variable, weights 400–700 | Google Fonts (`fonts.gstatic.com/s/inter/v20/…1ZL7W0Q5nw.woff2`) | SIL OFL 1.1 — `OFL-Inter.txt` |
-| `archivo-latin.woff2` | Archivo v25, variable, weights 600–700 | Google Fonts (`fonts.gstatic.com/s/archivo/v25/…sLydOxKsv4Rn.woff2`) | SIL OFL 1.1 — `OFL-Archivo.txt` |
+| `archivo-latin.woff2` | Archivo v25, variable, the full weight axis (declared 600–900: 900 is the "VH ___" section headings' word) | Google Fonts (`fonts.gstatic.com/s/archivo/v25/…sLydOxKsv4Rn.woff2`) | SIL OFL 1.1 — `OFL-Archivo.txt` |
 
 Why local and not `next/font/google`: on 2026-11-11 Google Fonts began answering plain
 HTTP/1.1 requests (no `Accept-Encoding`) with `/l/font?kit=…&skey=…` URLs. Turbopack's

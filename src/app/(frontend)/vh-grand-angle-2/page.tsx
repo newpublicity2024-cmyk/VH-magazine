@@ -5,10 +5,12 @@ import type { Metadata } from 'next'
 import { Listing, ListingHeader } from '@/components/Listing'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Pagination } from '@/components/Pagination'
+import { WithSidebar } from '@/components/WithSidebar'
 import { buildSafe } from '@/lib/build-safe'
 import { getCategoryByPath, getCategoryPage, getGrandAngleDossiers, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, STATIC_ROUTES, categoryUrl, pagedUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
+import { GRAND_ANGLE_HEADING } from '@/lib/vh-headings'
 
 /**
  * "Grand Angle" — the primary-nav destination (spec §4.2), at the live site's
@@ -75,7 +77,7 @@ export default async function GrandAnglePage({ searchParams }: Props) {
         ]}
       />
 
-      <ListingHeader title={TITLE} page={page}>
+      <ListingHeader title={TITLE} page={page} vh={GRAND_ANGLE_HEADING}>
         <p className="type-copy mt-4 max-w-[45rem] text-ink-2">{DESCRIPTION}</p>
         {category ? (
           <p className="type-copy-sm mt-3">
@@ -86,17 +88,19 @@ export default async function GrandAnglePage({ searchParams }: Props) {
         ) : null}
       </ListingHeader>
 
-      {result.docs.length === 0 ? (
-        <p className="type-copy text-ink-2">Aucun dossier pour le moment.</p>
-      ) : (
-        <Listing articles={result.docs} page={page} />
-      )}
+      <WithSidebar place="listing">
+        {result.docs.length === 0 ? (
+          <p className="type-copy text-ink-2">Aucun dossier pour le moment.</p>
+        ) : (
+          <Listing articles={result.docs} page={page} />
+        )}
 
-      <Pagination
-        page={result.page}
-        totalPages={result.totalPages}
-        hrefFor={(n) => pagedUrl(STATIC_ROUTES.grandAngle, n)}
-      />
+        <Pagination
+          page={result.page}
+          totalPages={result.totalPages}
+          hrefFor={(n) => pagedUrl(STATIC_ROUTES.grandAngle, n)}
+        />
+      </WithSidebar>
     </div>
   )
 }

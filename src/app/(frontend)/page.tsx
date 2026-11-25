@@ -1,33 +1,19 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
-import { ArticleCard } from '@/components/ArticleCard'
 import { JsonLd } from '@/components/JsonLd'
-import { ArticleList } from '@/components/ArticleList'
 import { CategoryBlock } from '@/components/CategoryBlock'
 import { CoverGrid } from '@/components/CoverGrid'
 import { DossierStrip } from '@/components/DossierStrip'
-import { InstagramCard } from '@/components/InstagramCard'
-import { KiosqueCover } from '@/components/KiosqueCover'
-import { NewsletterForm } from '@/components/NewsletterForm'
 import { PromoBanner } from '@/components/PromoBanner'
-import { SectionTitle } from '@/components/SectionHeader'
-import { SidebarWidget } from '@/components/SidebarWidget'
-import {
-  getArticlesByCategory,
-  getBanners,
-  getHomepageGlobal,
-  getIssues,
-  getLatestArticles,
-  getMostRead,
-  getSiteSettings,
-} from '@/lib/queries'
+import { SectionHeader, SectionTitle } from '@/components/SectionHeader'
+import { WithSidebar } from '@/components/WithSidebar'
+import { getArticlesByCategory, getBanners, getHomepageGlobal, getIssues, getSiteSettings } from '@/lib/queries'
 import { STATIC_ROUTES } from '@/lib/routes'
 import { absoluteFileUrl, buildMetadata, ogImageUrl, SITE_URL } from '@/lib/seo'
 import { SITE } from '@/lib/site'
-import { typoFr } from '@/lib/typo-fr'
 import { buildSafe } from '@/lib/build-safe'
-import type { Article } from '@/payload-types'
+import { GRAND_ANGLE_HEADING, vhHeading } from '@/lib/vh-headings'
 
 /** Spec §9: homepage revalidates roughly every five minutes. */
 export const revalidate = 300
@@ -45,48 +31,44 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The homepage, assembled in the exact order of spec §5.
+ * The homepage, in vh.ma's order (spec §5, as amended 2026-11-25).
  *
- * Fourteen sections, each carrying a `data-section` marker that gate G8 uses to
- * assert both presence and document order. Amendment A2 applies throughout:
- * every full-width block below the two-column region is its own stacked
- * section, never paired side-by-side.
+ * Ten sections, each carrying a `data-section` marker that gate G8 uses to assert both presence
+ * and document order: Actu, Lifestyle and Moteur in the main column beside the side panel, then
+ * the full-width blocks. Le Club VH (Who's Who), Chroniques cigare, the collector and Cool Drives
+ * live in the side panel (components/Sidebar.tsx), as on vh.ma — user instruction 2026-11-25,
+ * which supersedes amendment A2's full-width placement of those four. A2 still holds for what
+ * remains below: every full-width block is its own stacked section, never paired.
  *
  * All queries fire concurrently — they are independent, and awaiting them in
- * sequence would serialise fourteen round trips into the render.
+ * sequence would serialise their round trips into the render.
  */
 export default async function HomePage() {
   // One buildSafe around the whole batch rather than ten: if the database is
   // unreachable during a build, every one of these fails for the same reason,
   // and a half-populated homepage would be more confusing than an empty one.
-  const [actu, lifestyle, moteur, videos, people, mostRead, latest, issues, banners, homepage, cigars] =
-    await buildSafe(
-      () =>
-        Promise.all([
-          getArticlesByCategory('actualite-news-express-maroc', 4, true),
-          getArticlesByCategory('lifestyle-homme-maroc', 4, true),
-          getArticlesByCategory('moteur', 4, true),
-          getArticlesByCategory('video', 6),
-          getArticlesByCategory('people-celebrites', 5),
-          getMostRead(5),
-          getLatestArticles(5),
-          getIssues(4),
-          getBanners(),
-          getHomepageGlobal(),
-          // vh.ma's Chroniques cigare: the five latest posts filed (in any position) under vitoles-volutes.
-          getArticlesByCategory('vitoles-volutes', 5),
-        ]),
-      [[], [], [], [], [], [], [], [], {}, {} as Awaited<ReturnType<typeof getHomepageGlobal>>, []] as const as never,
-      'homepage',
-    )
-
-  // Hand-picked in the admin when set; otherwise vh.ma's own rule (latest five of vitoles-volutes).
-  const picked = (homepage.chroniquesCigare || []).filter(
-    (a): a is Article => typeof a === 'object' && a !== null,
+  const [actu, lifestyle, moteur, videos, people, issues, banners, homepage] = await buildSafe(
+    () =>
+      Promise.all([
+        getArticlesByCategory('actualite-news-express-maroc', 4, true),
+        getArticlesByCategory('lifestyle-homme-maroc', 4, true),
+        getArticlesByCategory('moteur', 4, true),
+        getArticlesByCategory('video', 6),
+        getArticlesByCategory('people-celebrites', 5),
+        getIssues(4),
+        getBanners(),
+        getHomepageGlobal(),
+      ]),
+    [[], [], [], [], [], [], {}, {} as Awaited<ReturnType<typeof getHomepageGlobal>>] as const as never,
+    'homepage',
   )
-  const chroniques = picked.length ? picked : (cigars as Article[])
+
   const dossiers = homepage.dossiers || []
-  const coolDrives = banners['cool-drives']
+  // vh.ma's section headings: VH EXPRESS, VH LIFESTYLE, VH MOTEUR; VH TV and VH PEOPLE on black;
+  // VH GRAND ANGLE over the dossiers.
+  const express = vhHeading('actualite-news-express-maroc')
+  const lifestyleHeading = vhHeading('lifestyle-homme-maroc')
+  const moteurHeading = vhHeading('moteur')
 
   const webSite = {
     '@context': 'https://schema.org',
@@ -125,95 +107,41 @@ export default async function HomePage() {
       <h1 className="sr-only">VH Magazine — {SITE.tagline}</h1>
 
       <div className="vh-stack">
-        {/* ── Two-column region: main column + sidebar (spec §5.1–5.4) ─────── */}
+        {/* ── Two-column region: main column + the side panel (spec §5.1–5.4, 5.5–5.8 as amended) ── */}
         <div className="vh-container">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div data-region="main-column" className="vh-stack">
-              <CategoryBlock
-                sectionKey="actu"
-                title="Actu"
-                href="/category/actualite-news-express-maroc/"
-                articles={actu}
-                layout="lead"
-                priorityFirst
-              />
-              <CategoryBlock
-                sectionKey="lifestyle"
-                title="Lifestyle"
-                href="/category/lifestyle-homme-maroc/"
-                articles={lifestyle}
-                columns={2}
-              />
-              <CategoryBlock
-                sectionKey="moteur"
-                title="Moteur"
-                href="/category/moteur/"
-                articles={moteur}
-                columns={2}
-              />
-            </div>
-
-            <aside data-region="sidebar" data-section="sidebar" aria-label="Colonne latérale">
-              {/* vh.ma's "En kiosque": the latest issue's cover (falls back to the collector banner) */}
-              <SidebarWidget title="En kiosque" widgetKey="collector-promo">
-                {issues[0] ? <KiosqueCover issue={issues[0]} /> : <PromoBanner banner={banners.collector} />}
-              </SidebarWidget>
-
-              <SidebarWidget title="The Shift Podcast" widgetKey="podcast">
-                <PromoBanner banner={banners.podcast} />
-              </SidebarWidget>
-
-              <SidebarWidget widgetKey="newsletter">
-                <NewsletterForm />
-              </SidebarWidget>
-
-              <SidebarWidget title="Instagram" widgetKey="instagram">
-                <InstagramCard />
-              </SidebarWidget>
-
-              <ArticleList title="Les plus lus" widgetKey="most-read" articles={mostRead} ranked />
-              <ArticleList title="Derniers articles" widgetKey="latest-articles" articles={latest} />
-            </aside>
-          </div>
-        </div>
-
-        {/* ── Full-width sections, stacked in spec §5 order (amendment A2) ──── */}
-        <div className="vh-container vh-stack">
-          {/* §5.5 */}
-          <section data-section="whos-who" aria-label="Who's Who">
-            <PromoBanner banner={banners['whos-who']} sizes="(min-width: 1240px) 1176px, 100vw" />
-          </section>
-
-          {/* §5.6 */}
-          <section data-section="chroniques-cigare" aria-labelledby="chroniques-heading">
-            <SectionTitle title="Chroniques cigare" id="chroniques-heading" />
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-5">
-              {chroniques.map((article) => (
-                <ArticleCard key={article.id} article={article} variant="compact" />
-              ))}
-            </div>
-          </section>
-
-          {/* §5.7 — full width, NOT paired with Cool Drives (amendment A2) */}
-          <section data-section="collector" aria-labelledby="collector-heading">
-            <SectionTitle title="Un collector à ne pas manquer !" id="collector-heading" />
-            <PromoBanner banner={banners['collector-sport']} sizes="(min-width: 1240px) 1176px, 100vw" />
-          </section>
-
-          {/* §5.8 — its own section (amendment A2) */}
-          <section data-section="cool-drives" aria-labelledby="cool-drives-heading">
-            <SectionTitle title="Cool Drives By Rafik Lahlou" id="cool-drives-heading" />
-            <PromoBanner banner={coolDrives} sizes="(min-width: 1240px) 1176px, 100vw" />
-            {coolDrives?.body ? (
-              <p className="type-copy mx-auto mt-6 max-w-[45rem] text-center text-ink-2">{typoFr(coolDrives.body)}</p>
-            ) : null}
-          </section>
+          <WithSidebar place="home" mainClassName="vh-stack">
+            <CategoryBlock
+              sectionKey="actu"
+              title={express.word}
+              strip={express.strip}
+              href="/category/actualite-news-express-maroc/"
+              articles={actu}
+              layout="lead"
+              priorityFirst
+            />
+            <CategoryBlock
+              sectionKey="lifestyle"
+              title={lifestyleHeading.word}
+              strip={lifestyleHeading.strip}
+              href="/category/lifestyle-homme-maroc/"
+              articles={lifestyle}
+              columns={2}
+            />
+            <CategoryBlock
+              sectionKey="moteur"
+              title={moteurHeading.word}
+              strip={moteurHeading.strip}
+              href="/category/moteur/"
+              articles={moteur}
+              columns={2}
+            />
+          </WithSidebar>
         </div>
 
         {/* §5.9 — on black, edge to edge (decision D5) */}
         <CategoryBlock
           sectionKey="videos"
-          title="Vidéos"
+          title="TV"
           href={STATIC_ROUTES.vhTv}
           articles={videos}
           columns={3}
@@ -239,10 +167,18 @@ export default async function HomePage() {
         />
 
         <div className="vh-container vh-stack">
-          {/* §5.12 — strips STACKED full width (amendment A2) */}
-          <section data-section="dossiers" className="space-y-16" aria-label="Dossiers">
+          {/* §5.12 — strips STACKED full width (amendment A2), under vh.ma's VH GRAND ANGLE heading
+              (not a link there either) */}
+          <section
+            data-section="dossiers"
+            className="space-y-16"
+            {...(dossiers.length > 0 ? { 'aria-labelledby': 'dossiers-heading' } : { 'aria-label': 'Dossiers' })}
+          >
             {banners['le-luxe'] ? (
               <PromoBanner banner={banners['le-luxe']} sizes="(min-width: 1240px) 1176px, 100vw" />
+            ) : null}
+            {dossiers.length > 0 ? (
+              <SectionHeader word={GRAND_ANGLE_HEADING.word} strip={GRAND_ANGLE_HEADING.strip} id="dossiers-heading" />
             ) : null}
             {dossiers.map((dossier, index) => (
               <DossierStrip

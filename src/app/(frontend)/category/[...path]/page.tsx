@@ -4,9 +4,11 @@ import type { Metadata } from 'next'
 import { Listing, ListingHeader } from '@/components/Listing'
 import { Breadcrumbs, type Crumb } from '@/components/Breadcrumbs'
 import { Pagination } from '@/components/Pagination'
+import { WithSidebar } from '@/components/WithSidebar'
 import { getCategoryByPath, getCategoryPage, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, categoryPageUrl, categoryUrl } from '@/lib/routes'
 import { buildMetadata, ogImageUrl } from '@/lib/seo'
+import { vhHeadingForCategory } from '@/lib/vh-headings'
 import type { Category } from '@/payload-types'
 
 /** Listings change less often than the homepage (spec §9). */
@@ -71,23 +73,25 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     <div className="vh-container pt-8 lg:pt-12">
       <Breadcrumbs items={crumbs} />
 
-      <ListingHeader title={category.name} page={page}>
+      <ListingHeader title={category.name} page={page} vh={vhHeadingForCategory(category)}>
         {category.description ? (
           <p className="type-copy mt-4 max-w-[45rem] text-ink-2">{category.description}</p>
         ) : null}
       </ListingHeader>
 
-      {result.docs.length === 0 ? (
-        <p className="type-copy text-ink-2">Aucun article dans cette catégorie pour le moment.</p>
-      ) : (
-        <Listing articles={result.docs} page={page} />
-      )}
+      <WithSidebar place="listing">
+        {result.docs.length === 0 ? (
+          <p className="type-copy text-ink-2">Aucun article dans cette catégorie pour le moment.</p>
+        ) : (
+          <Listing articles={result.docs} page={page} />
+        )}
 
-      <Pagination
-        page={result.page}
-        totalPages={result.totalPages}
-        hrefFor={(n) => categoryPageUrl(category as never, n)}
-      />
+        <Pagination
+          page={result.page}
+          totalPages={result.totalPages}
+          hrefFor={(n) => categoryPageUrl(category as never, n)}
+        />
+      </WithSidebar>
     </div>
   )
 }
