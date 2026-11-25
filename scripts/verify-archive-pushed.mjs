@@ -12,6 +12,9 @@
  *     to_jsonb (UTC), minus the two columns that legitimately drift: articles.view_count (any
  *     browser visit to the live alias increments it) and the generated search_vector (recomputed
  *     on restore by the target server's own stemmer);
+ *   - payload_migrations compares by migration NAME: its ids, batches and timestamps record where
+ *     and when each ran, which legitimately differs once a migration was applied to production
+ *     by its own build or by hand (2026-11-24: the back office's, re-added at 15:59);
  *   - the account tables (users, sessions, preferences, document locks) are excluded: the push
  *     re-creates the admin there, and logins write sessions. Instead the target must hold exactly
  *     one user, an admin, with the --admin-file email;
@@ -52,7 +55,7 @@ const ACCOUNT_TABLES = new Set([
   'payload_locked_documents',
   'payload_locked_documents_rels',
 ])
-const DRIFTING = { articles: ['view_count', 'search_vector'] }
+const DRIFTING = { articles: ['view_count', 'search_vector'], payload_migrations: ['id', 'batch', 'created_at', 'updated_at'] }
 
 async function connect(url) {
   const c = new pg.Client({ connectionString: url })
