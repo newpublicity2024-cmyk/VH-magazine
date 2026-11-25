@@ -32,8 +32,17 @@ assert(expected.size <= 12, `${expected.size} articles exceed one page (12); thi
 
 const canonicalOf = (html) => /<link[^>]+rel="canonical"[^>]+href="([^"]+)"/i.exec(html)?.[1] ?? null
 
-/** First href inside each data-card element. */
-const cardHrefs = (html) =>
+/**
+ * First href inside each data-card element of the listing itself — from [data-category-grid] up to
+ * the side panel, whose Les plus lus and Derniers articles are cards too (since 2026-11-25).
+ */
+const cardHrefs = (page) => {
+  const from = page.indexOf('data-category-grid')
+  const to = page.indexOf('data-region="sidebar"')
+  assert(from > -1 && to > from, `the listing grid (${from}) must precede the side panel (${to})`)
+  return cardHrefsIn(page.slice(from, to))
+}
+const cardHrefsIn = (html) =>
   html
     .split(/<article\b[^>]*\bdata-card\b/)
     .slice(1)

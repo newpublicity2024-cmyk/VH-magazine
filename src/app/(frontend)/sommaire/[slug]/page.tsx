@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import type { Metadata } from 'next'
 
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { WithSidebar } from '@/components/WithSidebar'
 import { formatDate, isoDate } from '@/lib/format'
 import { getIssueBySlug } from '@/lib/queries'
 import { STATIC_ROUTES, issueUrl } from '@/lib/routes'
@@ -56,40 +57,47 @@ export default async function SommairePage({ params }: Props) {
           { label: issue.title, href: issueUrl(issue) },
         ]}
       />
-      <article data-issue className="grid items-start gap-10 md:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-16">
-        {cover?.url ? (
-          <div className="vh-cover vh-edge bg-canvas-2">
-            <Image
-              src={cover.url}
-              alt={cover.alt || issue.title}
-              width={cover.width || 720}
-              height={cover.height || 960}
-              sizes="(min-width: 768px) 340px, 100vw"
-              priority
-              fetchPriority="high"
-              className="h-auto w-full"
-            />
+      <WithSidebar place="page">
+        {/* Beside the side panel the main column is 612–828 px wide: the cover narrows to 240 px
+            until the column is wide enough for its 340 px again. */}
+        <article
+          data-issue
+          className="grid items-start gap-10 md:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)] xl:gap-16"
+        >
+          {cover?.url ? (
+            <div className="vh-cover vh-edge bg-canvas-2">
+              <Image
+                src={cover.url}
+                alt={cover.alt || issue.title}
+                width={cover.width || 720}
+                height={cover.height || 960}
+                sizes="(min-width: 1280px) 340px, (min-width: 1024px) 240px, (min-width: 768px) 340px, 100vw"
+                priority
+                fetchPriority="high"
+                className="h-auto w-full"
+              />
+            </div>
+          ) : null}
+          <div className="max-w-[45rem]">
+            <p className="type-kicker text-accent">VH N°{issue.number}</p>
+            <h1 className="type-h1-page mt-3 text-ink">{issue.title}</h1>
+            <time data-date dateTime={isoDate(issue.publishedAt)} className="type-meta mt-3 block text-meta">
+              {formatDate(issue.publishedAt)}
+            </time>
+            {issue.summary ? <p className="type-lead mt-8 whitespace-pre-line">{typoFr(issue.summary)}</p> : null}
+            <div className="mt-10 flex flex-wrap gap-3">
+              {pdf?.url ? (
+                <a data-button href={pdf.url} target="_blank" rel="noopener noreferrer" className="vh-button-solid type-button">
+                  Lire le numéro (PDF)
+                </a>
+              ) : null}
+              <Link data-button href={STATIC_ROUTES.lesUnes} className="vh-button type-button">
+                Toutes nos unes
+              </Link>
+            </div>
           </div>
-        ) : null}
-        <div className="max-w-[45rem]">
-          <p className="type-kicker text-accent">VH N°{issue.number}</p>
-          <h1 className="type-h1-page mt-3 text-ink">{issue.title}</h1>
-          <time data-date dateTime={isoDate(issue.publishedAt)} className="type-meta mt-3 block text-meta">
-            {formatDate(issue.publishedAt)}
-          </time>
-          {issue.summary ? <p className="type-lead mt-8 whitespace-pre-line">{typoFr(issue.summary)}</p> : null}
-          <div className="mt-10 flex flex-wrap gap-3">
-            {pdf?.url ? (
-              <a data-button href={pdf.url} target="_blank" rel="noopener noreferrer" className="vh-button-solid type-button">
-                Lire le numéro (PDF)
-              </a>
-            ) : null}
-            <Link data-button href={STATIC_ROUTES.lesUnes} className="vh-button type-button">
-              Toutes nos unes
-            </Link>
-          </div>
-        </div>
-      </article>
+        </article>
+      </WithSidebar>
     </div>
   )
 }

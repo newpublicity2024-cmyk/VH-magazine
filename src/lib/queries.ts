@@ -297,6 +297,18 @@ export const getCategoryByPath = cache(async (segments: string[]): Promise<Categ
   return null
 })
 
+/**
+ * A category by its slug alone, when exactly one carries it (WordPress keeps category slugs
+ * unique, so the archive's are). vh.ma answers every category archive at its bare slug too —
+ * /le-luxe/, /moteur/, /portraits/ (measured 2026-11-25) — and the article route sends such a
+ * path to the category's /category/… address. Depth 3 populates the parent chain for categoryUrl.
+ */
+export const getCategoryBySlug = cache(async (slug: string): Promise<Category | null> => {
+  const payload = await getPayloadClient()
+  const result = await payload.find({ collection: 'categories', where: { slug: { equals: slug } }, limit: 2, depth: 3 })
+  return result.docs.length === 1 ? (result.docs[0] as Category) : null
+})
+
 /** One page of published articles in a category and its descendants. */
 export const getCategoryPage = cache(
   async (slug: string, page: number, pageSize: number): Promise<PagedArticles> => {

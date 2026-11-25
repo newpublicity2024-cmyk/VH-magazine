@@ -3,6 +3,10 @@
  *
  * Counts are taken INSIDE each section's own subtree, so a block that rendered
  * the right total by borrowing cards from its neighbour would still fail.
+ *
+ * 2026-11-25: Chroniques cigare is the side panel's slider now (as on vh.ma): five slides,
+ * counted as `data-slide` (a slide shows no date, so it is not a `data-card`). "Les plus lus"
+ * is not on the homepage — vh.ma hides it there; GATES-SIDEBAR SB6 counts it on an article.
  */
 import {
   homepageHtml,
@@ -19,7 +23,6 @@ const EXPECTED = {
   actu: 4, // §5.1
   lifestyle: 4, // §5.2
   moteur: 4, // §5.3
-  'chroniques-cigare': 5, // §5.6
   videos: 6, // §5.9
   people: 5, // §5.11
   unes: 4, // §5.13
@@ -27,9 +30,11 @@ const EXPECTED = {
 
 /** Sidebar widgets are lists, counted within their own widget subtree. */
 const SIDEBAR_EXPECTED = {
-  'most-read': 5, // §5.4.5 "Les plus lus"
   'latest-articles': 5, // §5.4.6 "Derniers articles"
 }
+
+/** The panel's Chroniques cigare slider (§5.6, in the panel since 2026-11-25). */
+const SLIDES_EXPECTED = { 'chroniques-cigare': 5 }
 
 const html = await homepageHtml()
 
@@ -46,6 +51,13 @@ for (const [key, expected] of Object.entries(SIDEBAR_EXPECTED)) {
   const measured = countMarkers(body, 'data-card')
   assertEqual(measured, expected, `item count in sidebar widget "${key}"`)
 }
+
+for (const [key, expected] of Object.entries(SLIDES_EXPECTED)) {
+  const body = widgetHtml(html, key)
+  assert(body !== null, `sidebar widget "${key}" not found (expected data-widget="${key}")`)
+  assertEqual(countMarkers(body, 'data-slide'), expected, `slide count in sidebar widget "${key}"`)
+}
+assert(widgetHtml(html, 'most-read') === null, 'the homepage shows "Les plus lus" — vh.ma hides it there')
 
 // Sanity: the totals must add up, so a card rendered outside every section
 // (or double-counted by nesting) shows up as a discrepancy rather than passing.

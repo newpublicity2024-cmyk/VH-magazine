@@ -11,7 +11,8 @@
  *   D6  every homepage grid card's title box starts below its image box;
  *   D7  the masthead logo is horizontally centred (±2 px) at 1440, and the compact mark
  *       sits at the left of the sticky bar;
- *   D8  "Les plus lus" shows rank numerals 1–5 in order.
+ *   D8  "Les plus lus" shows rank numerals 1–5 in order — on an article page: since 2026-11-25 the
+ *       homepage leaves it out, as vh.ma's does (GATES-SIDEBAR), and the homepage must show none.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -85,7 +86,7 @@ await withBrowser(async ({ page, baseUrl, pageErrors }) => {
   check(home.radii.length > 0 && home.radii.every((r) => r === '0px'), `D2: card image corners are not square: ${[...new Set(home.radii)].join(', ')}`)
   check(home.logoCentre !== null && Math.abs(home.logoCentre - home.viewport / 2) <= 2, `D7: masthead logo centre ${home.logoCentre} vs viewport centre ${home.viewport / 2}`)
   check(home.markInBarLeftHalf && home.markLeft !== null && Math.abs(home.markLeft) <= 2, `D7: compact mark is not at the left of the bar (offset ${home.markLeft})`)
-  check(JSON.stringify(home.ranks) === JSON.stringify(['1', '2', '3', '4', '5']), `D8: Les plus lus ranks are ${JSON.stringify(home.ranks)}, expected 1–5`)
+  check(home.ranks.length === 0, `D8: the homepage shows Les plus lus (${JSON.stringify(home.ranks)}); vh.ma's leaves it out`)
 
   // Active nav marker on a section page, and the search panel radius.
   await d.goto(`${baseUrl}/category/moteur/`, { waitUntil: 'load', timeout: 60_000 })
@@ -107,6 +108,8 @@ await withBrowser(async ({ page, baseUrl, pageErrors }) => {
   check(kicker === ACCENT, `C1: article category pill is ${kicker}, expected the accent ${ACCENT}`)
   const kickerRadius = await a.locator('[data-kicker]').first().evaluate((el) => getComputedStyle(el).borderTopLeftRadius)
   check(kickerRadius === '0px', `D2: category pill radius is ${kickerRadius}, expected 0 (crisp)`)
+  const ranks = await a.evaluate(() => [...document.querySelectorAll('[data-widget="most-read"] [data-rank]')].map((r) => r.textContent.trim()))
+  check(JSON.stringify(ranks) === JSON.stringify(['1', '2', '3', '4', '5']), `D8: Les plus lus ranks on an article are ${JSON.stringify(ranks)}, expected 1–5`)
   await a.context().close()
 
   assert(pageErrors.length === 0, `page errors: ${pageErrors.slice(0, 3).join(' | ')}`)

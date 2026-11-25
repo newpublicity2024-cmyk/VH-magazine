@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { Listing, ListingHeader } from '@/components/Listing'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Pagination } from '@/components/Pagination'
+import { WithSidebar } from '@/components/WithSidebar'
 import { buildSafe } from '@/lib/build-safe'
 import { getCategoryByPath, getCategoryPage, getGrandAngleDossiers, getSiteSettings } from '@/lib/queries'
 import { PAGE_SIZE, STATIC_ROUTES, categoryUrl, pagedUrl } from '@/lib/routes'
@@ -86,17 +87,19 @@ export default async function GrandAnglePage({ searchParams }: Props) {
         ) : null}
       </ListingHeader>
 
-      {result.docs.length === 0 ? (
-        <p className="type-copy text-ink-2">Aucun dossier pour le moment.</p>
-      ) : (
-        <Listing articles={result.docs} page={page} />
-      )}
+      <WithSidebar place="listing">
+        {result.docs.length === 0 ? (
+          <p className="type-copy text-ink-2">Aucun dossier pour le moment.</p>
+        ) : (
+          <Listing articles={result.docs} page={page} />
+        )}
 
-      <Pagination
-        page={result.page}
-        totalPages={result.totalPages}
-        hrefFor={(n) => pagedUrl(STATIC_ROUTES.grandAngle, n)}
-      />
+        <Pagination
+          page={result.page}
+          totalPages={result.totalPages}
+          hrefFor={(n) => pagedUrl(STATIC_ROUTES.grandAngle, n)}
+        />
+      </WithSidebar>
     </div>
   )
 }
